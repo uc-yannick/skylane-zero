@@ -489,6 +489,7 @@ const SHAPES = [
   { round: 0, taper: 0, flat: 1, geo: () => new THREE.CylinderGeometry(0, Math.SQRT1_2, 1, 4, 1).rotateY(Math.PI / 4) }
 ];
 SHAPES.forEach(s => { s.base = s.geo(); s.base.translate(0, 0.5, 0); if (s.flat) { s.base = s.base.toNonIndexed(); s.base.computeVertexNormals(); } });
+const snap3 = v => Math.round(v * 1000) / 1000;
 const scaleAt = (b, y) => b.tp === 1 ? 1 : 1 + (b.tp - 1) * clamp((y - b.y0) / (b.y1 - b.y0), 0, 1);
 const mkBox = (x0, x1, z0, z1, y0, y1, s, l, t) => ({ ty: T_BOX, x0, x1, z0, z1, y0, y1, cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, hx: (x1 - x0) / 2, hz: (z1 - z0) / 2, rd: 0, tp: 1, s, l, t });
 const mkShape = (ty, cx, cz, r, y0, y1, s, l, t) => ({ ty, x0: cx - r, x1: cx + r, z0: cz - r, z1: cz + r, y0, y1, cx, cz, hx: r, hz: r, rd: SHAPES[ty].round, tp: SHAPES[ty].taper, s, l, t });
@@ -695,7 +696,7 @@ class World {
       const g = SHAPES[ty].base.clone(), ad = new Float32Array(arr.length * 4);
       g.setAttribute('aData', new THREE.InstancedBufferAttribute(ad, 4)); g.boundingSphere = sphere;
       const im = new THREE.InstancedMesh(g, buildingMat, arr.length);
-      arr.forEach((b, i) => { p.set(b.cx, b.y0, b.cz); s.set(b.hx * 2, b.y1 - b.y0, b.hz * 2); m.compose(p, q, s); im.setMatrixAt(i, m); const q = v => Math.round(v * 1000) / 1000; ad[i * 4] = q(b.s); ad[i * 4 + 1] = q(b.l); ad[i * 4 + 2] = q(b.t); ad[i * 4 + 3] = b.rd; });
+      arr.forEach((b, i) => { p.set(b.cx, b.y0, b.cz); s.set(b.hx * 2, b.y1 - b.y0, b.hz * 2); m.compose(p, q, s); im.setMatrixAt(i, m); ad[i * 4] = snap3(b.s); ad[i * 4 + 1] = snap3(b.l); ad[i * 4 + 2] = snap3(b.t); ad[i * 4 + 3] = b.rd; });
       this.scene.add(im); out.push(im);
     });
     const sg = new THREE.BoxGeometry(1, 1, 1); sg.boundingSphere = sphere.clone();
