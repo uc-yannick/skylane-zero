@@ -25,6 +25,7 @@
   --display:'Michroma','Chakra Petch',system-ui,sans-serif;
   --body:'Chakra Petch',system-ui,sans-serif;
   --mono:'JetBrains Mono',ui-monospace,Menlo,monospace;
+  --ui:1;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -41,7 +42,7 @@ body.mode-cruise .nc-only{display:none!important}
 
 /* ---------- HUD ---------- */
 #hud{position:fixed;inset:0;pointer-events:none;font-variant-numeric:tabular-nums}
-.tl{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));left:calc(14px + env(safe-area-inset-left,0px));display:grid;gap:5px;width:150px}
+.tl{transform:scale(var(--ui));transform-origin:top left;position:absolute;top:calc(10px + env(safe-area-inset-top,0px));left:calc(14px + env(safe-area-inset-left,0px));display:grid;gap:5px;width:150px}
 .speed{display:flex;align-items:baseline;gap:6px}
 .speed b{font-family:var(--mono);font-weight:600;font-size:28px;line-height:1;text-shadow:0 0 12px rgba(255,161,61,.3)}
 .speed span{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--mute)}
@@ -61,7 +62,7 @@ body.mode-cruise .nc-only{display:none!important}
 .toast.cyan{border-color:var(--cyan)}.toast.red{border-color:var(--siren)}
 @keyframes toast{0%{opacity:0;transform:translateX(-10px)}8%{opacity:1;transform:none}82%{opacity:1}100%{opacity:0}}
 
-.tc{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%);display:grid;justify-items:center;gap:6px}
+.tc{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%) scale(var(--ui));transform-origin:top center;display:grid;justify-items:center;gap:6px}
 .nav{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 6px;background:rgba(6,5,11,.5);border:1px solid rgba(71,228,255,.3)}
 .nav svg{width:22px;height:22px}
 .nav .d{font-family:var(--mono);font-size:15px;color:var(--cyan);font-weight:600;line-height:1.1}
@@ -74,7 +75,7 @@ body.mode-cruise .nc-only{display:none!important}
 .warnline{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--siren);font-weight:700;text-shadow:0 0 10px var(--siren);animation:blink .5s steps(2) infinite}
 @keyframes blink{50%{opacity:.25}}
 
-.tr{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));right:calc(14px + env(safe-area-inset-right,0px));display:grid;justify-items:end;gap:8px}
+.tr{transform:scale(var(--ui));transform-origin:top right;position:absolute;top:calc(10px + env(safe-area-inset-top,0px));right:calc(14px + env(safe-area-inset-right,0px));display:grid;justify-items:end;gap:8px}
 .toprow{display:flex;gap:8px;align-items:center}
 .heat{display:flex;gap:3px;align-items:center}
 .heat i{width:9px;height:9px;border:1px solid rgba(255,51,85,.45);transform:skewX(-14deg)}
@@ -84,14 +85,14 @@ body.mode-cruise .nc-only{display:none!important}
 .iconbtn svg{width:14px;height:14px}
 
 #locks{position:absolute;inset:0;pointer-events:none;overflow:hidden}
-.lk{position:absolute;left:0;top:0;width:44px;height:44px;margin:-22px 0 0 -22px;will-change:transform}
+.lk{position:absolute;left:0;top:0;width:calc(44px * var(--ui));height:calc(44px * var(--ui));margin:calc(-22px * var(--ui)) 0 0 calc(-22px * var(--ui));will-change:transform}
 .lk b{position:absolute;inset:0;transition:transform .08s linear}
 .lk i{position:absolute;width:11px;height:11px;border:2px solid var(--amber)}
 .lk i:nth-child(1){left:0;top:0;border-right:0;border-bottom:0}
 .lk i:nth-child(2){right:0;top:0;border-left:0;border-bottom:0}
 .lk i:nth-child(3){left:0;bottom:0;border-right:0;border-top:0}
 .lk i:nth-child(4){right:0;bottom:0;border-left:0;border-top:0}
-.lk span{position:absolute;left:50%;top:100%;transform:translateX(-50%);margin-top:4px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--amber);white-space:nowrap;text-shadow:0 0 6px rgba(0,0,0,.9)}
+.lk span{position:absolute;left:50%;top:100%;transform:translateX(-50%);margin-top:4px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;font-size:calc(10px * var(--ui));color:var(--amber);white-space:nowrap;text-shadow:0 0 6px rgba(0,0,0,.9)}
 .lk.track i{border-color:rgba(236,230,245,.4);border-width:1px}
 .lk.track span{color:var(--ink)}
 .lk.ally b{display:none}
@@ -102,15 +103,15 @@ body.mode-cruise .nc-only{display:none!important}
 #mouseAim i{position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:var(--amber);box-shadow:0 0 6px var(--amber)}
 #mslMark{position:absolute;left:0;top:0;width:30px;height:30px;margin:-15px 0 0 -15px;will-change:transform}
 #mslMark i{position:absolute;inset:5px;border:2px solid var(--siren);transform:rotate(45deg);box-shadow:0 0 10px var(--siren);animation:blink .3s steps(2) infinite}
-#mslMark span{position:absolute;left:50%;top:100%;transform:translateX(-50%);margin-top:4px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--siren);white-space:nowrap;text-shadow:0 0 6px rgba(0,0,0,.9)}
+#mslMark span{position:absolute;left:50%;top:100%;transform:translateX(-50%);margin-top:4px;font-family:var(--mono);font-size:calc(10px * var(--ui));letter-spacing:.1em;color:var(--siren);white-space:nowrap;text-shadow:0 0 6px rgba(0,0,0,.9)}
 #seeker{position:absolute;left:50%;top:50%;border:1px dashed rgba(255,161,61,.22);border-radius:50%;transform:translate(-50%,-50%)}
-#respawn{position:absolute;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);font-family:var(--display);font-size:12px;letter-spacing:.14em;padding:8px 16px;background:rgba(6,5,11,.72);border-left:3px solid var(--siren);white-space:nowrap}
+#respawn{position:absolute;left:50%;bottom:calc(28px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) scale(var(--ui));transform-origin:bottom center;font-family:var(--display);font-size:12px;letter-spacing:.14em;padding:8px 16px;background:rgba(6,5,11,.72);border-left:3px solid var(--siren);white-space:nowrap}
 #letterbox i{position:fixed;left:0;right:0;height:0;background:#000;transition:height .35s ease;z-index:5;pointer-events:none}
 #letterbox i:first-child{top:0}#letterbox i:last-child{bottom:0}
 #letterbox.on i{height:10vh}
 #flash{position:fixed;inset:0;background:#ffd2a0;opacity:0;pointer-events:none}
 #hurt{position:fixed;inset:0;pointer-events:none;opacity:0;box-shadow:inset 0 0 140px 30px rgba(255,30,60,.7)}
-#hint{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);font-family:var(--mono);font-size:11px;color:var(--mute);background:rgba(6,5,11,.6);padding:6px 12px;pointer-events:none;transition:opacity .8s;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
+#hint{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) scale(var(--ui));transform-origin:bottom center;font-family:var(--mono);font-size:11px;color:var(--mute);background:rgba(6,5,11,.6);padding:6px 12px;pointer-events:none;transition:opacity .8s;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
 
 /* ---------- Touch controls ---------- */
 #touch{position:fixed;inset:0;pointer-events:none}
@@ -133,7 +134,7 @@ body.mode-cruise .nc-only{display:none!important}
 .screen{position:fixed;inset:0;display:flex;align-items:center;
   padding:calc(16px + env(safe-area-inset-top,0px)) max(16px, env(safe-area-inset-right,0px)) calc(16px + env(safe-area-inset-bottom,0px)) max(16px, env(safe-area-inset-left,0px))}
 .side{background:linear-gradient(90deg,rgba(6,5,11,.94) 0%,rgba(6,5,11,.72) 45%,rgba(6,5,11,0) 80%)}
-.mi{width:min(600px,100%);max-height:100%;overflow:auto;display:grid;gap:clamp(8px,2vh,14px);padding-left:clamp(0px,3vw,40px)}
+.mi{zoom:var(--ui);width:min(600px,100%);max-height:100%;overflow:auto;display:grid;gap:clamp(8px,2vh,14px);padding-left:clamp(0px,3vw,40px)}
 .eyebrow{font-family:var(--mono);font-size:11px;color:var(--amber);letter-spacing:.12em}
 h1{margin:0;font-family:var(--display);font-weight:400;font-size:clamp(24px,5vw,54px);letter-spacing:.1em;line-height:1.05;text-wrap:balance}
 h1 em{font-style:normal;color:var(--amber);text-shadow:0 0 24px rgba(255,161,61,.5)}
@@ -158,7 +159,7 @@ h1.small{font-size:clamp(20px,3.6vw,36px)}
 .muted{color:var(--mute);font-size:13px;line-height:1.45}
 .muted.err{color:var(--siren)}
 .center{justify-content:center;background:rgba(6,5,11,.55)}
-.panel{width:min(440px,100%);max-height:100%;overflow:auto;background:var(--panel);border:1px solid var(--line);padding:20px;display:grid;gap:14px;text-align:left}
+.panel{zoom:var(--ui);width:min(440px,100%);max-height:100%;overflow:auto;background:var(--panel);border:1px solid var(--line);padding:20px;display:grid;gap:14px;text-align:left}
 .panel h2{margin:0;font-family:var(--display);font-weight:400;letter-spacing:.14em;font-size:clamp(20px,3.4vw,28px)}
 .panel h2.red{color:var(--siren);text-shadow:0 0 20px rgba(255,51,85,.5)}
 .stats{display:grid;grid-template-columns:1fr auto;gap:6px 16px;font-size:13px;color:var(--mute)}
@@ -357,7 +358,7 @@ const renderer = new THREE.WebGLRenderer({ canvas, antialias: !isTouch, powerPre
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(FOG_COLOR);
 scene.fog = new THREE.FogExp2(FOG_COLOR, FOG_DEN);
-const camera = new THREE.PerspectiveCamera(66, 1, 0.5, 2200);
+const camera = new THREE.PerspectiveCamera(66, 1, 1.0, 2200);
 const hemi = new THREE.HemisphereLight(0x8a8690, 0x3a2a1c, 0.9); scene.add(hemi);
 const sun = new THREE.DirectionalLight(0xffc890, 0.55); sun.position.set(-0.4, 1, 0.3); scene.add(sun);
 const fillL = new THREE.DirectionalLight(0x9fb4c8, 0.25); fillL.position.set(0.5, 0.2, -1); scene.add(fillL);
@@ -366,7 +367,8 @@ const settings = { quality: store.get('quality', isTouch ? 'low' : 'high'), soun
 let composer = null;
 try {
   if (THREE.EffectComposer && THREE.UnrealBloomPass) {
-    composer = new THREE.EffectComposer(renderer);
+    if (!renderer.capabilities.isWebGL2 || !THREE.WebGLMultisampleRenderTarget) throw new Error('bloom needs WebGL2');
+    composer = new THREE.EffectComposer(renderer, new THREE.WebGLMultisampleRenderTarget(innerWidth, innerHeight, { format: THREE.RGBAFormat }));
     composer.addPass(new THREE.RenderPass(scene, camera));
     composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(256, 256), 0.7, 0.65, 0.62));
   }
@@ -2322,6 +2324,26 @@ const PEER_OPTIONS = { debug: 1, config: { iceServers: [
   { urls: 'stun:stun1.l.google.com:19302' },
   { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' }
 ]}};
+// Optional: paste your own Metered TURN credentials URL here for a dedicated relay, e.g.
+// 'https://yourapp.metered.live/api/v1/turn/credentials?apiKey=YOUR_KEY'
+const TURN_API = '';
+async function loadIce() {
+  const list = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun.relay.metered.ca:80' }];
+  try {
+    // TURN REST auth: username = expiry:name, credential = base64(HMAC-SHA1(secret, username))
+    const user = Math.floor(Date.now() / 1000 + 24 * 3600) + ':skylane';
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey('raw', enc.encode('openrelayprojectsecret'), { name: 'HMAC', hash: 'SHA-1' }, false, ['sign']);
+    const sig = new Uint8Array(await crypto.subtle.sign('HMAC', key, enc.encode(user)));
+    let bin = ''; sig.forEach(b => { bin += String.fromCharCode(b); });
+    const h = 'staticauth.openrelay.metered.ca';
+    list.push({ urls: [`turn:${h}:80`, `turn:${h}:80?transport=tcp`, `turn:${h}:443`, `turns:${h}:443?transport=tcp`], username: user, credential: btoa(bin) });
+  } catch (e) { console.warn('TURN auth unavailable', e); }
+  if (TURN_API) { try { const r = await fetch(TURN_API); const extra = await r.json(); if (Array.isArray(extra)) list.push(...extra); } catch (e) { console.warn('TURN API failed', e); } }
+  list.push(...PEER_OPTIONS.config.iceServers.filter(s => String(s.urls).includes('peerjs')));
+  PEER_OPTIONS.config.iceServers = list;
+}
+const ICE_READY = loadIce();
 const roomPeerId = code => `skz-${KEY}-${code}`;
 const NET = { peer: null, conns: new Map(), isHost: false, connected: false, code: '', myId: '', players: {}, phase: 'lobby', mode: 'ffa',
   cdEnd: 0, endAt: 0, lastBroadcast: 0, lastPosSend: 0, lastStateAt: 0, lastSeen: {}, bufs: {}, joinTimer: 0, warned: false, lobbyKey: null };
@@ -2385,7 +2407,8 @@ function addPlayer(id) {
 function rebalanceTeams() { Object.values(NET.players).sort((a, b) => a.idx - b.idx).forEach((p, i) => { p.team = i % 2; }); }
 
 /* host */
-function mpHost() {
+async function mpHost() {
+  mpMsg('Creating match…'); await ICE_READY;
   if (!window.Peer) return mpMsg('The connection library did not load. Check the internet and reload.', true);
   mpCleanup(); NET.isHost = true; mpMsg('Creating match…');
   openHostPeer(0);
@@ -2487,7 +2510,8 @@ function startMatch() {
 }
 
 /* client */
-function mpJoin(raw) {
+async function mpJoin(raw) {
+  await ICE_READY;
   if (!window.Peer) return mpMsg('The connection library did not load. Check the internet and reload.', true);
   const code = String(raw || $('#mpCode').value).replace(/\D/g, '');
   if (code.length !== 3) { mpMsg('Type the 3-digit code shown on the host device.', true); return; }
@@ -2973,6 +2997,7 @@ function drawMinimap() {
 let last = performance.now();
 function resize() {
   const w = innerWidth, h = innerHeight;
+  document.documentElement.style.setProperty('--ui', clamp(Math.min(h / 800, w / 1100), 1, 2.4).toFixed(3));
   const dpr = settings.quality === 'high' ? Math.min(devicePixelRatio, 1.5) : Math.min(devicePixelRatio, 1);
   renderer.setPixelRatio(dpr); renderer.setSize(w, h, false);
   camera.aspect = w / h; camera.updateProjectionMatrix();
