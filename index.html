@@ -999,10 +999,10 @@ class Mist {
       vertexShader: `attribute float msize; attribute float malpha; uniform float uScale; varying float vA;
         void main(){ vec4 mv = modelViewMatrix * vec4(position, 1.0); gl_Position = projectionMatrix * mv; float d = -mv.z;
           gl_PointSize = clamp(msize * uScale / max(d, 1.0), 0.0, 1600.0);
-          vA = malpha * smoothstep(20.0, 90.0, d) * (1.0 - smoothstep(370.0, 460.0, d)); }`,
+          vA = malpha * 0.7 * smoothstep(70.0, 170.0, d) * (1.0 - smoothstep(370.0, 460.0, d)); }`,
       fragmentShader: `uniform vec3 uCol; varying float vA;
         void main(){ float r = length(gl_PointCoord - 0.5); float a = 1.0 - smoothstep(0.0, 0.5, r); gl_FragColor = vec4(uCol, a * a * vA); }`,
-      transparent: true, depthWrite: false
+      transparent: true, depthWrite: false, depthTest: false
     }));
     this.mesh.frustumCulled = false; this.mesh.renderOrder = 4; scene.add(this.mesh);
   }
