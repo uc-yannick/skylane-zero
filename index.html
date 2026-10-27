@@ -456,7 +456,7 @@ let composer = null;
 try {
   if (THREE.EffectComposer && THREE.UnrealBloomPass) {
     if (!renderer.capabilities.isWebGL2 || !THREE.WebGLMultisampleRenderTarget) throw new Error('bloom needs WebGL2');
-    composer = new THREE.EffectComposer(renderer, new THREE.WebGLMultisampleRenderTarget(innerWidth, innerHeight, { format: THREE.RGBAFormat }));
+    composer = new THREE.EffectComposer(renderer, new THREE.WebGLMultisampleRenderTarget(innerWidth, innerHeight, { format: THREE.RGBAFormat, stencilBuffer: true }));
     composer.addPass(new THREE.RenderPass(scene, camera));
     composer.addPass(new THREE.UnrealBloomPass(new THREE.Vector2(256, 256), 0.7, 0.65, 0.62));
   }
@@ -472,15 +472,15 @@ const FOG_GLSL = `uniform vec3 uFog; uniform float uDen;
 const buildingMat = new THREE.ShaderMaterial({
   uniforms: fogUniforms, extensions: { derivatives: true },
   vertexShader: `
-    attribute vec4 aData; varying vec3 vW; varying vec3 vN; varying vec4 vD; varying vec2 vC; varying float vR;
+    attribute vec4 aData; varying vec3 vW; varying vec3 vN; varying vec4 vD; varying vec2 vC; varying float vR; varying vec2 vB;
     void main(){
       vec4 w = modelMatrix * instanceMatrix * vec4(position,1.0); vW = w.xyz; vC = instanceMatrix[3].xz;
       vec3 sc = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz));
-      vN = normalize(normal / sc); vD = aData; vR = sc.x * 0.5;
+      vN = normalize(normal / sc); vD = aData; vR = sc.x * 0.5; vB = vec2(instanceMatrix[3].y, instanceMatrix[3].y + sc.y);
       gl_Position = projectionMatrix * viewMatrix * w; }`,
   fragmentShader: `
     ${FOG_GLSL}
-    varying vec3 vW; varying vec3 vN; varying vec4 vD; varying vec2 vC; varying float vR;
+    varying vec3 vW; varying vec3 vN; varying vec4 vD; varying vec2 vC; varying float vR; varying vec2 vB;
     // exact whole-number hash: every step stays below 2^24, so all GPUs get bit-identical results
     float modx(float x, float m){ float q = floor(x / m); float r = x - q * m; if (r < 0.0) r += m; if (r >= m) r -= m; return r; }
     float perm(float x){ return modx((34.0 * x + 1.0) * x, 289.0); }   // exact: stays below 2^24
@@ -505,10 +505,15 @@ const buildingMat = new THREE.ShaderMaterial({
         // antialiased window edges; once a window is only a few pixels big, fade to its average glow
         vec2 fw = vec2(length(dW.xz) / ww, dW.y / fh); vec2 e = clamp(fw * 0.75, 0.001, 0.5);
         vec2 wm = smoothstep(vec2(0.14, 0.24) - e, vec2(0.14, 0.24) + e, f) * (1.0 - smoothstep(vec2(0.86, 0.76) - e, vec2(0.86, 0.76) + e, f));
-        float win = wm.x * wm.y;
-        float detail = (1.0 - smoothstep(0.2, 0.5, max(fw.x, fw.y))) * (1.0 - smoothstep(260.0, 620.0, d));
-        float side = vD.w > 0.5 ? 0.0 : dot(floor(vN.xz * 1.5 + 0.5), vec2(3.0, 7.0));
         float seed = floor(vD.x * 1000.0 + 0.5);
+        float sty = fract(seed * 0.618);
+        if (sty < 0.22) wm.x = 1.0;                                          // ribbon windows
+        float pil = 3.0 + floor(fract(seed * 0.173) * 3.0);
+        float isPil = step(0.35, sty) * step(modx(cell.x, pil), 0.5);       // solid structural column every few bays
+        float win = wm.x * wm.y * (1.0 - isPil);
+        float detail = (1.0 - smoothstep(0.2, 0.5, max(fw.x, fw.y))) * (1.0 - smoothstep(260.0, 620.0, d));
+        col += isPil * vec3(0.014, 0.013, 0.012) * detail;
+        float side = vD.w > 0.5 ? 0.0 : dot(floor(vN.xz * 1.2 + 0.5), vec2(3.0, 7.0));
         float h0 = perm(modx(perm(modx(perm(modx(perm(modx(cell.x, 289.0)) + cell.y, 289.0)) + modx(seed, 289.0), 289.0)) + side + 7.0, 289.0));
         float r = h0 / 289.0;
         float lit = step(1.0 - D.y, r);
@@ -518,6 +523,20 @@ const buildingMat = new THREE.ShaderMaterial({
         col += win * (1.0 - lit) * vec3(0.018, 0.019, 0.022) * detail;
         vec3 winCol = win * lit * wc * bright;
         col += mix(vec3(0.95, 0.62, 0.3) * D.y * 0.3, winCol, detail);
+        // parapet band along the top of each tier, sometimes with a thin LED line under it
+        float tall = vB.y - vB.x, fromTop = vB.y - vW.y, ey = max(dW.y, 0.02);
+        float par = (1.0 - smoothstep(1.3 - ey, 1.3 + ey, fromTop)) * step(10.0, tall);
+        col = mix(col, base * 0.62, par);
+        float ledOn = step(fract(seed * 0.37), 0.3) * step(60.0, vB.y);
+        float led = (smoothstep(1.3 - ey, 1.3 + ey, fromTop) - smoothstep(1.65 - ey, 1.65 + ey, fromTop)) * ledOn;
+        col += led * (fract(seed * 0.91) < 0.7 ? vec3(1.3, 0.62, 0.24) : vec3(0.3, 0.85, 1.05));
+        // glazed, lit lobbies at street level
+        float lob = (1.0 - smoothstep(5.2 - ey, 5.2 + ey, vW.y)) * smoothstep(0.4 - ey, 0.4 + ey, vW.y) * step(vB.x, 0.5) * step(12.0, tall);
+        float fu = fract(u / 3.0), eu = clamp(length(dW.xz) / 3.0, 0.002, 0.5);
+        float frame = mix(0.85, smoothstep(0.05 - eu, 0.05 + eu, fu) * (1.0 - smoothstep(0.95 - eu, 0.95 + eu, fu)), detail);
+        float shop = perm(modx(perm(modx(floor(u / 6.0), 289.0)) + modx(seed, 289.0), 289.0)) / 289.0;
+        vec3 lobCol = (shop < 0.55 ? vec3(1.0, 0.6, 0.28) * (0.35 + shop) : vec3(0.05, 0.05, 0.055)) * frame;
+        col = mix(col, lobCol, lob);
       } else {
         col = base * 0.8;
       }
@@ -724,10 +743,14 @@ class World {
         // rooftop clutter: plant rooms and water tanks
         if (flat && roofR > 3 && rnd() < 0.6) {
           const n = 1 + (rnd() * 3 | 0);
+          const placed = [];
           for (let k = 0; k < n; k++) {
-            const ox = (rnd() - 0.5) * roofR, oz = (rnd() - 0.5) * roofR, s = 1.5 + rnd() * 2.5, hh = 2 + rnd() * 4;
-            if (rnd() < 0.4) push(mkShape(T_CYL, mx + ox, mz + oz, s * 0.7, top, top + hh, sv, 0, tint));
-            else push(mkBox(mx + ox - s, mx + ox + s, mz + oz - s * 0.7, mz + oz + s * 0.7, top, top + hh, sv, 0.02, tint));
+            const ox = (rnd() - 0.5) * roofR, oz = (rnd() - 0.5) * roofR, s = 1.5 + rnd() * 2.5, hh = 2 + rnd() * 4, cyl = rnd() < 0.4;
+            const hx = cyl ? s * 0.7 : s, hz = s * 0.7, X = mx + ox, Z = mz + oz;
+            if (placed.some(o => Math.abs(o[0] - X) < o[2] + hx + 0.6 && Math.abs(o[1] - Z) < o[3] + hz + 0.6)) continue;
+            placed.push([X, Z, hx, hz]);
+            if (cyl) push(mkShape(T_CYL, X, Z, s * 0.7, top, top + hh, sv, 0, tint));
+            else push(mkBox(X - s, X + s, Z - s * 0.7, Z + s * 0.7, top, top + hh, sv, 0.02, tint));
           }
         }
         if (flat && rnd() < 0.3) {
@@ -989,6 +1012,14 @@ const MSL_TIP = new THREE.ConeGeometry(0.16, 0.42, 8).rotateX(Math.PI / 2);
 function makeMissileMesh() { const m = new THREE.Mesh(MSL_BODY, mslMat); const t = new THREE.Mesh(MSL_TIP, mslTipMat); t.position.z = 1.16; m.add(t); return m; }
 const flashRed = new THREE.MeshBasicMaterial({ color: new THREE.Color(2, 0.1, 0.15) });
 const flashBlue = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.1, 0.3, 2) });
+// side profile (z forward, y up) extruded across the width, with bevelled edges
+function profileGeo(pts, width, bevel) {
+  const sh = new THREE.Shape(); sh.moveTo(pts[0][0], pts[0][1]); for (let i = 1; i < pts.length; i++) sh.lineTo(pts[i][0], pts[i][1]);
+  const g = new THREE.ExtrudeGeometry(sh, { depth: width - bevel * 2, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel * 0.8, bevelSegments: 2, curveSegments: 1 });
+  g.translate(0, 0, -(width - bevel * 2) / 2); g.rotateY(-Math.PI / 2); g.computeVertexNormals(); return g;
+}
+const CAR_HULL = profileGeo([[-3.3, -0.42], [4.55, -0.4], [4.72, -0.08], [1.7, 0.44], [-1.6, 0.52], [-3.3, 0.5]], 3.2, 0.16);
+const CAR_CANOPY = profileGeo([[-1.75, 0.42], [1.55, 0.42], [0.45, 1.12], [-1.25, 1.14]], 2.2, 0.08);
 function makeCar(kind, accent) {
   const cop = kind === 'cop';
   const g = new THREE.Group(); g.rotation.order = 'YXZ';
@@ -997,10 +1028,9 @@ function makeCar(kind, accent) {
   const glass = new THREE.MeshStandardMaterial({ color: 0x0a1424, metalness: 0.8, roughness: 0.15, emissive: cop ? 0x1a0812 : 0x082233 });
   const glow = new THREE.MeshBasicMaterial({ color: 0xffffff });
   const add = (geo, mat, x, y, z, rx = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.x = rx; g.add(m); return m; };
-  add(new THREE.BoxGeometry(3.2, 0.9, 6.4), paint, 0, 0, 0);
-  add(new THREE.BoxGeometry(2.8, 0.55, 1.8), paint, 0, -0.12, 3.8, 0.18);
-  add(new THREE.BoxGeometry(2.3, 0.75, 2.8), glass, 0, 0.78, -0.2);
-  add(new THREE.BoxGeometry(3.45, 0.22, 6.6), trim, 0, -0.46, 0);
+  add(CAR_HULL, paint, 0, 0, 0);
+  add(CAR_CANOPY, glass, 0, 0, 0);
+  add(new THREE.BoxGeometry(3.6, 0.2, 6.7), trim, 0, -0.44, 0.1);
   const pg = new THREE.CylinderGeometry(0.6, 0.72, 5.4, 12), rg = new THREE.CylinderGeometry(0.5, 0.5, 0.15, 12);
   const fg = new THREE.ConeGeometry(0.45, 2.4, 10, 1, true);
   const fmat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
@@ -1010,9 +1040,9 @@ function makeCar(kind, accent) {
     add(rg, glow, s * 2.05, -0.15, -3.12, Math.PI / 2);
     const fl = add(fg, fmat, s * 2.05, -0.15, -4.3, -Math.PI / 2); flames.push(fl);
   }
-  add(new THREE.BoxGeometry(3.0, 0.14, 0.08), new THREE.MeshBasicMaterial({ color: new THREE.Color(2, 0.12, 0.15) }), 0, 0.15, -3.22);
+  add(new THREE.BoxGeometry(3.0, 0.12, 0.08), new THREE.MeshBasicMaterial({ color: new THREE.Color(2, 0.12, 0.15) }), 0, 0.2, -3.5);
   const hl = new THREE.MeshBasicMaterial({ color: new THREE.Color(1.8, 1.8, 1.7) });
-  add(new THREE.BoxGeometry(0.8, 0.16, 0.08), hl, -1.0, -0.05, 4.68); add(new THREE.BoxGeometry(0.8, 0.16, 0.08), hl, 1.0, -0.05, 4.68);
+  add(new THREE.BoxGeometry(0.85, 0.1, 0.1), hl, -0.95, -0.2, 4.72); add(new THREE.BoxGeometry(0.85, 0.1, 0.1), hl, 0.95, -0.2, 4.72);
   const underMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
   const under = add(new THREE.PlaneGeometry(3, 6.2), underMat, 0, -0.62, 0, Math.PI / 2);
   under.renderOrder = 2;
@@ -1020,7 +1050,7 @@ function makeCar(kind, accent) {
   if (cop) {
     add(new THREE.BoxGeometry(0.75, 0.2, 0.5), flashRed, -0.5, 1.24, -0.2);
     add(new THREE.BoxGeometry(0.75, 0.2, 0.5), flashBlue, 0.5, 1.24, -0.2);
-    add(new THREE.BoxGeometry(3.3, 0.14, 3.2), trim, 0, 0.2, 0.6);
+    add(new THREE.BoxGeometry(3.56, 0.14, 3.2), trim, 0, 0.2, 0.6);
     add(new THREE.SphereGeometry(0.38, 10, 8), new THREE.MeshBasicMaterial({ color: new THREE.Color(2, 2, 2.2) }), 0, -0.62, 2.4);
     const cg = new THREE.ConeGeometry(9, 60, 18, 1, true); cg.translate(0, -30, 0);
     cone = new THREE.Mesh(cg, beamMaterial(0xbcd6ff, 0.22, 60));
@@ -1035,9 +1065,18 @@ function makeCar(kind, accent) {
     }
     add(new THREE.BoxGeometry(3.8, 0.1, 0.8), paint, 0, 0.95, -3.0);                    // rear wing
     add(new THREE.BoxGeometry(3.0, 0.08, 0.7), trim, 0, -0.5, 4.35);                    // front splitter
-    add(new THREE.BoxGeometry(2.4, 0.05, 0.05), glow, 0, 0.12, 4.73);                   // nose light bar
-    add(new THREE.BoxGeometry(0.9, 0.28, 1.2), trim, 0, 0.5, 2.1);                      // hood intake
-    add(new THREE.BoxGeometry(2.36, 0.06, 2.9), trim, 0, 1.17, -0.2);                   // canopy frame
+    add(new THREE.BoxGeometry(2.6, 0.05, 0.06), glow, 0, -0.33, 4.62);                  // nose light bar
+    add(new THREE.BoxGeometry(0.9, 0.2, 1.2), trim, 0, 0.44, 2.2, -0.16);               // hood intake
+    add(new THREE.BoxGeometry(2.24, 0.06, 1.8), trim, 0, 1.2, -0.4);                    // canopy roof frame
+    add(new THREE.BoxGeometry(3.0, 0.03, 0.06), trim, 0, 0.47, 1.5);                    // hood seam
+    add(new THREE.BoxGeometry(0.04, 0.55, 0.04), trim, 0.6, 1.45, -1.2);                // antenna
+    const ring = new THREE.TorusGeometry(0.66, 0.08, 6, 18);
+    for (const s of [-1, 1]) {
+      for (let k = 0; k < 3; k++) add(new THREE.BoxGeometry(0.05, 0.06, 0.5), trim, s * 1.63, -0.02 - k * 0.11, 1.3);   // side vents
+      add(ring, trim, s * 2.05, -0.15, -3.05);                                          // nozzle collars
+      add(new THREE.BoxGeometry(0.12, 0.08, 0.4), new THREE.MeshBasicMaterial({ color: new THREE.Color(2, 0.12, 0.15) }), s * 2.05, 1.02, -2.7);   // fin tip lights
+      add(new THREE.BoxGeometry(0.16, 0.08, 0.22), trim, s * 1.2, 0.72, 1.35);          // camera pods (mirrors)
+    }
   }
   const pods = [];
   if (kind === 'player') {
