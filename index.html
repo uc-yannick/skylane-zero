@@ -1958,6 +1958,7 @@ const remotes = new Map();   // multiplayer pilots on other devices
 
 const game = { state: 'menu', mode: null, elapsed: 0, jobTime: 0, jobs: 0, credits: 0, wrecks: 0, heat: 1, bust: 0, near: 0, drop: new V3(), dropName: '', dropStart: 0, grace: 0, spawnCd: 0, shake: 0, hudHidden: false, hudT: 0, mapT: 0,
   pods: [1, 1, 1, 1], queue: [], fireCd: 0, slowT: 0, ts: 1, heatBonus: 0, killPos: new V3(), aim: new V3(0, 0, 1), camPitch: 0, fovKick: 0, lockScanT: 0, beepT: 0, warnT: 0, menuOpen: false };
+game.deathT = 0; game.deathPos = new V3(); game.deathYaw = 0; game.deathThen = null;
 const mp = { alive: true, respawnT: 0, protect: 0, lastDmg: 9, outT: 0, deathPos: new V3(), killer: null, mid: 0 };
 
 /* ---------- Particles (smoke + fire) ---------- */
@@ -2049,6 +2050,36 @@ function explode(p, s = 1) {
   game.shake = Math.min(1.5, game.shake + clamp(1 - d / 220, 0, 1) * 0.9 * s);
   Snd.boom(d, s, panOf(p));
   { const k = clamp(1 - d / 260, 0, 1) * Math.min(1.2, s); if (k > 0.05) rumble(k * 0.8, k * 0.6, 180 + k * 260); }
+}
+function sparks(p, n, spd) {
+  for (let i = 0; i < n; i++) {
+    _e.set(Math.random() * 2 - 1, Math.random() * 1.4 - 0.2, Math.random() * 2 - 1).normalize();
+    const v = spd * (0.4 + Math.random() * 0.8);
+    fire.emit(p.x, p.y, p.z, _e.x * v, _e.y * v, _e.z * v, 0.35 + Math.random() * 0.45, 1.4, 0.25, 3.0, 2.3, 1.1, 1, 0.6, -28);
+  }
+}
+const debris = [];
+{
+  const g = new THREE.BoxGeometry(1, 1, 1), m = new THREE.MeshStandardMaterial({ color: 0x2a2224, metalness: 0.5, roughness: 0.6 });
+  for (let i = 0; i < 10; i++) { const mesh = new THREE.Mesh(g, m); mesh.visible = false; scene.add(mesh); debris.push({ mesh, vel: new V3(), spin: new V3(), t: 0 }); }
+}
+function spawnDebris(p, base) {
+  for (const d of debris) {
+    d.mesh.visible = true; d.mesh.position.copy(p); d.t = 0;
+    d.mesh.scale.set(0.6 + Math.random() * 1.8, 0.3 + Math.random() * 0.8, 0.6 + Math.random() * 2.2);
+    d.vel.set((Math.random() - 0.5) * 32, 6 + Math.random() * 16, (Math.random() - 0.5) * 32).addScaledVector(base, 0.45);
+    d.spin.set(Math.random() * 7, Math.random() * 7, Math.random() * 7);
+  }
+}
+function updateDebris(dt) {
+  for (const d of debris) {
+    if (!d.mesh.visible) continue;
+    const P = d.mesh.position; d.t += dt; d.vel.y -= 22 * dt; P.addScaledVector(d.vel, dt);
+    d.mesh.rotation.x += d.spin.x * dt; d.mesh.rotation.y += d.spin.y * dt; d.mesh.rotation.z += d.spin.z * dt;
+    if (Math.random() < 0.7) fire.emit(P.x, P.y, P.z, 0, 1, 0, 0.3, 1.8, 0.4, 2.2, 0.8, 0.25, 1, 0, 0);
+    if (Math.random() < 0.5) smoke.emit(P.x, P.y, P.z, 0, 2, 0, 1.4, 1, 5, 0.1, 0.09, 0.11, 0.6, 1, 1.5);
+    if (P.y < 1 || d.t > 6 || world.blockedAt(P.x, P.y, P.z)) { d.mesh.visible = false; sparks(P, 10, 12); }
+  }
 }
 function updateFlashes(dt) {
   for (const f of flashes) {
@@ -2291,6 +2322,7 @@ function newJob(first) {
   toast((first ? 'PACKAGE ABOARD · ' : 'NEW DROP · ') + game.dropName.toUpperCase(), 'cyan');
 }
 function resetCombat() {
+  debris.forEach(d => { d.mesh.visible = false; });
   Object.assign(game, { pods: [1, 1, 1, 1], queue: [], fireCd: 0, slowT: 0, ts: 1, camPitch: 0, fovKick: 0, menuOpen: false });
   missiles.forEach(killMissile); smoke.clear(); fire.clear();
   cops.forEach(c => { c.lock = 0; c.inbound = 0; });
@@ -2343,7 +2375,16 @@ function toMenu() {
   hideWorldActors(); showOnly('#menu');
   attract.z = camPos.z; renderBest();
 }
+function startDeathCam(then) {
+  game.state = 'dying'; game.deathT = 0; game.deathThen = then; game.slowT = 0;
+  game.deathPos.copy(player.pos); game.deathYaw = player.yaw;
+  explode(player.pos, 2.2); spawnDebris(player.pos, player.vel); sparks(player.pos, 50, 30);
+  playerMesh.group.visible = false; game.queue = [];
+  screenFlash('#ffd2a0', 0.45, 650); rumble(1, 1, 900); releaseMouse();
+  $('#touch').hidden = true; $('#hud').hidden = true;
+}
 function gameOver(reason) {
+  if ((reason === 'WRECKED' || reason === 'SHOT DOWN') && game.state === 'play') { startDeathCam(() => gameOver(reason)); return; }
   game.state = 'over'; game.slowT = 0; releaseMouse();
   const best = store.get('best', { drops: 0, credits: 0 });
   const isBest = game.credits > best.credits;
@@ -2377,7 +2418,7 @@ function spawnCop(c) {
   c.yawRate = 0; c.roll = 0; c.pitch = 0;
   c.baseSpeed = 74 + game.heat * 6; c.spec.maxSpeed = c.baseSpeed;
   c.side = Math.random() < 0.5 ? -1 : 1; c.yOff = (Math.random() - 0.5) * 14;
-  c.mslCd = 3 + Math.random() * 5; c.aimT = 0;
+  c.mslCd = 3 + Math.random() * 5; c.aimT = 0; c.hp = 100;
   c.active = true; c.wrecked = false; c.wreckT = 0; c.lock = 0; c.inbound = 0; c.mesh.group.visible = true;
 }
 const copInp = { throttle: 0, steer: 0, lift: 0, boost: false };
@@ -2386,12 +2427,13 @@ function copRepel(c, dt) {
   // walls beside a cruiser push it away; walls straight ahead push only weakly, so head-on crashes still happen
   const fx = Math.sin(c.yaw), fz = Math.cos(c.yaw);
   let px = 0, pz = 0;
+  const r1 = 7 + c.speed * 0.08, r2 = 15 + c.speed * 0.18;   // feel further out at speed
   for (const [dx, dz] of REP_DIRS) {
     const side = Math.abs(dx * fz - dz * fx), w = 0.2 + 0.8 * side;
-    if (world.blockedAt(c.pos.x + dx * 7, c.pos.y, c.pos.z + dz * 7)) { px -= dx * w; pz -= dz * w; }
-    else if (world.blockedAt(c.pos.x + dx * 15, c.pos.y, c.pos.z + dz * 15)) { px -= dx * w * 0.45; pz -= dz * w * 0.45; }
+    if (world.blockedAt(c.pos.x + dx * r1, c.pos.y, c.pos.z + dz * r1)) { px -= dx * w; pz -= dz * w; }
+    else if (world.blockedAt(c.pos.x + dx * r2, c.pos.y, c.pos.z + dz * r2)) { px -= dx * w * 0.45; pz -= dz * w * 0.45; }
   }
-  if (px || pz) { c.vel.x += px * 80 * dt; c.vel.z += pz * 80 * dt; }
+  if (px || pz) { c.vel.x += px * 120 * dt; c.vel.z += pz * 120 * dt; }
 }
 function copAI(c) {
   // cruisers race past you on a side lane, then turn into your path to cut you off
@@ -2401,7 +2443,7 @@ function copAI(c) {
   if (along < 40) {
     // behind or alongside: race past on a side lane
     const ahead = 110;
-    gx = p.x + fx * ahead + fz * c.side * 16; gz = p.z + fz * ahead - fx * c.side * 16;
+    gx = p.x + fx * ahead + fz * c.side * 6; gz = p.z + fz * ahead - fx * c.side * 6;   // overtake within the street, not through the buildings
     mul = 1.45; c.ai = 'pass';
   } else if (dist < 120) {
     // ahead and close: turn to face the player, sit in the flight path and brake hard
@@ -2413,20 +2455,37 @@ function copAI(c) {
     const lead = clamp(dist / 150, 0, 1) * 0.9;
     gx = p.x + player.vel.x * lead; gz = p.z + player.vel.z * lead; c.ai = 'block';
   }
-  c.spec.maxSpeed = c.spec.boostSpeed = c.baseSpeed * mul;
+  c.spec.maxSpeed = c.spec.boostSpeed = Math.min(100, c.baseSpeed * mul);
   let dYaw = wantYaw !== null ? wantYaw : Math.atan2(gx - c.pos.x, gz - c.pos.z), dY = p.y + yOff;
-  const cfx = Math.sin(c.yaw), cfz = Math.cos(c.yaw), L = 16 + c.speed * 0.6;
-  let blocked = null;
-  for (const l of [L * 0.45, L]) { const b = world.blockedAt(c.pos.x + cfx * l, c.pos.y, c.pos.z + cfz * l, 4); if (b) { blocked = b; break; } }
+  // look about a second ahead along the actual direction of travel
+  const spd = Math.max(25, Math.hypot(c.vel.x, c.vel.z)), mx = c.vel.x / spd, mz = c.vel.z / spd, L = 20 + spd * 1.4;
+  let blocked = null, bd = 0;
+  for (const f of [0.25, 0.5, 0.75, 1]) {
+    // probe both at the current height and where its climb or dive is taking it
+    const px = c.pos.x + mx * L * f, pz = c.pos.z + mz * L * f, py2 = c.pos.y + c.vel.y * f * (L / spd);
+    const b = world.blockedAt(px, c.pos.y, pz, 5) || world.blockedAt(px, py2, pz, 5);
+    if (b) { blocked = b; bd = L * f; break; }
+  }
+  let avoid = false;
   if (blocked) {
-    dY = Math.max(dY, blocked.y1 + 12);
-    const probe = a => !world.blockedAt(c.pos.x + Math.sin(c.yaw + a) * L, c.pos.y, c.pos.z + Math.cos(c.yaw + a) * L, 3);
-    const left = probe(0.6), right = probe(-0.6);
-    if (left && !right) dYaw = c.yaw + 0.9; else if (right && !left) dYaw = c.yaw - 0.9;
+    avoid = true;
+    // pick the most open direction around the obstacle (and climb if the roof is near)
+    const head = Math.atan2(mx, mz); let bestA = 0, bestFree = -1;
+    for (const a of [0.4, -0.4, 0.8, -0.8, 1.25, -1.25, 1.7, -1.7]) {
+      let free = 0;
+      for (const f of [0.35, 0.7, 1]) { if (world.blockedAt(c.pos.x + Math.sin(head + a) * L * f, c.pos.y, c.pos.z + Math.cos(head + a) * L * f, 5)) break; free++; }
+      const toward = Math.cos(wrapA(head + a - dYaw)) * 0.3;   // prefer gaps that still lead towards the target
+      if (free + toward > bestFree) { bestFree = free + toward; bestA = a; }
+    }
+    dYaw = head + bestA;
+    if (blocked.y1 - c.pos.y < 30) dY = Math.max(dY, blocked.y1 + 15);
+    else if (blocked.y0 > 0 && c.pos.y < blocked.y0) dY = Math.min(dY, blocked.y0 - 10);   // duck under skybridges
+    else dY = c.pos.y;   // tall wall: hold altitude and steer round it
+    thr = bd < L * 0.5 ? -1 : 0.1;   // brake hard when it is close
   }
   const d = wrapA(dYaw - c.yaw);
-  copInp.steer = clamp(-d * 2.4, -1, 1);
-  copInp.throttle = blocked && blocked.y1 - c.pos.y > 25 ? 0.15 : (Math.abs(d) > 1.8 && dist < 60 ? 0.3 : thr);
+  copInp.steer = clamp(-d * (avoid ? 3.5 : 2.4), -1, 1);
+  copInp.throttle = avoid ? thr : (Math.abs(d) > 1.8 && dist < 60 ? 0.3 : thr);
   copInp.lift = clamp((dY - c.pos.y) / 8, -1, 1);
   return copInp;
 }
@@ -2493,10 +2552,10 @@ function trafficHit(v) {
   return Math.max(11, -rel);
 }
 function simStep(dt) {
-  const getaway = game.mode === 'getaway';
-  const impact = Math.max(player.step(input, dt, world), trafficHit(player));
+  const getaway = game.mode === 'getaway', alive = game.state === 'play';
+  const impact = alive ? Math.max(player.step(input, dt, world), trafficHit(player)) : 0;
   if (impact > 10) {
-    game.shake = Math.min(1.2, game.shake + impact / 50); Snd.hit(impact); rumble(clamp(impact / 45, 0.2, 1), 0.35, 140 + impact * 4);
+    game.shake = Math.min(1.2, game.shake + impact / 50); Snd.hit(impact); rumble(clamp(impact / 45, 0.2, 1), 0.35, 140 + impact * 4); sparks(player.pos, 10 + Math.round(impact * 0.6), 14 + impact * 0.3);
     if (getaway && impact > 12) {
       player.hull -= (impact - 8) * 1.05;
       if (player.hull <= 0) { player.hull = 0; gameOver('WRECKED'); return; }
@@ -2511,7 +2570,7 @@ function simStep(dt) {
   const want = game.grace > 0 ? 0 : Math.min(MAX_COPS, game.heat + 2);
   const activeN = cops.filter(c => c.active).length;
   game.spawnCd -= dt;
-  if (activeN < want && game.spawnCd <= 0) { const c = cops.find(c => !c.active); if (c) { spawnCop(c); game.spawnCd = 2.2; } }
+  if (alive && activeN < want && game.spawnCd <= 0) { const c = cops.find(c => !c.active); if (c) { spawnCop(c); game.spawnCd = 2.2; } }
   let near = 0;
   for (const c of cops) {
     if (!c.active) continue;
@@ -2526,8 +2585,16 @@ function simStep(dt) {
     }
     copRepel(c, dt);
     const imp = c.step(copAI(c), dt, world);
-    if (imp > 24) { wreckCop(c, false); continue; }
+    if (imp > 12) {
+      // scrapes throw sparks and dent the armour; flying straight into something blows the cruiser up
+      const headOn = imp > 42;
+      sparks(c.pos, headOn ? 45 : 14 + Math.round(imp * 0.6), 16 + imp * 0.4);
+      if (c.pos.distanceTo(player.pos) < 160) Snd.hit(imp * 0.6);
+      if (imp > 20) c.hp -= (imp - 20) * 1.6;
+      if (headOn || c.hp <= 0) { explode(c.pos, 1.3); wreckCop(c, false); continue; }
+    }
     const dx = player.pos.x - c.pos.x, dy = player.pos.y - c.pos.y, dz = player.pos.z - c.pos.z, d = Math.hypot(dx, dy, dz);
+    if (!alive) continue;
     if (d < 5.5 && d > 0.01) {
       const nx = dx / d, ny = dy / d, nz = dz / d, push = (5.5 - d) / 2;
       player.pos.x += nx * push; player.pos.y += ny * push; player.pos.z += nz * push;
@@ -2911,8 +2978,9 @@ function meHit(m) {
 function mpDie(by) {
   if (!mp.alive) return;
   mouse.x = mouse.y = 0;
-  mp.alive = false; mp.respawnT = 4; mp.killer = by; mp.deathPos.copy(player.pos); player.hull = 0;
-  explode(player.pos, 1.6); playerMesh.group.visible = false; game.queue = [];
+  mp.alive = false; mp.respawnT = 4; mp.killer = by; mp.deathPos.copy(player.pos); mp.deathYaw = player.yaw; player.hull = 0;
+  explode(player.pos, 1.8); spawnDebris(player.pos, player.vel); sparks(player.pos, 40, 28); rumble(1, 1, 800);
+  playerMesh.group.visible = false; game.queue = [];
   netSend({ type: 'die', by: by || null, p: [r2(player.pos.x), r2(player.pos.y), r2(player.pos.z)] });
 }
 function mpRespawn() {
@@ -2926,7 +2994,7 @@ function mpStep(dt) {
   if (mp.alive) {
     const impact = Math.max(player.step(game.menuOpen ? NO_INPUT : input, dt, world), trafficHit(player));
     if (impact > 10) {
-      game.shake = Math.min(1.2, game.shake + impact / 50); Snd.hit(impact); rumble(clamp(impact / 45, 0.2, 1), 0.35, 140 + impact * 4);
+      game.shake = Math.min(1.2, game.shake + impact / 50); Snd.hit(impact); rumble(clamp(impact / 45, 0.2, 1), 0.35, 140 + impact * 4); sparks(player.pos, 10 + Math.round(impact * 0.6), 14 + impact * 0.3);
       if (impact > 12 && mp.protect <= 0) { player.hull -= (impact - 8) * 1.05; mp.lastDmg = 0; }
     }
     mp.protect = Math.max(0, mp.protect - dt);
@@ -3056,9 +3124,19 @@ function updateCamera(dt) {
     camera.fov = lerp(camera.fov, Math.min(62, fovCap()), dt * 2); camera.updateProjectionMatrix();
     return;
   }
-  if (game.mode === 'mp' && !mp.alive) {
-    tmp2.copy(mp.deathPos); camLook.lerp(tmp2, 1 - Math.exp(-dt * 3));
-    camPos.y += dt * 4; camera.position.copy(camPos); camera.lookAt(camLook);
+  if (game.state === 'dying' || (game.mode === 'mp' && !mp.alive)) {
+    // kill cam: slow orbit around the wreck, pulling back as it burns
+    const dying = game.state === 'dying';
+    const T = dying ? game.deathT : 4 - mp.respawnT, P = dying ? game.deathPos : mp.deathPos;
+    const a = (dying ? game.deathYaw : (mp.deathYaw || 0)) + 2.4 + T * 0.45, r = 16 + T * 7;
+    tmp.set(P.x + Math.sin(a) * r, P.y + 6 + T * 3, P.z + Math.cos(a) * r);
+    for (let i = 0; i < 4 && world.blockedAt(tmp.x, tmp.y, tmp.z, 1.5); i++) tmp.lerp(P, 0.35).y += 2;
+    camPos.lerp(tmp, 1 - Math.exp(-dt * 5)); camLook.lerp(P, 1 - Math.exp(-dt * 6));
+    camera.position.copy(camPos);
+    if (game.shake > 0 && !reduceMotion) { const s2 = game.shake * 0.6; camera.position.x += (Math.random() - 0.5) * s2; camera.position.y += (Math.random() - 0.5) * s2; }
+    game.shake = Math.max(0, game.shake - dt * 2);
+    camera.lookAt(camLook);
+    camera.fov = lerp(camera.fov, Math.min(55, fovCap()), dt * 2); camera.updateProjectionMatrix();
     return;
   }
   const p = player.pos;
@@ -3232,10 +3310,15 @@ function frame(now) {
   const rdt = Math.min(0.05, (now - last) / 1000); last = now; const t = now / 1000;
   pollInput();
   if (game.slowT > 0) game.slowT -= rdt;
-  const tsT = game.slowT > 0 && game.state === 'play' && game.mode !== 'mp' ? 0.28 : 1;
+  if (game.state === 'dying') {
+    game.deathT += rdt;
+    if (game.deathT > 3.6 && game.deathThen) { const f = game.deathThen; game.deathThen = null; f(); }
+  }
+  const tsT = (game.slowT > 0 && game.state === 'play' && game.mode !== 'mp') || (game.state === 'dying' && game.deathT < 1.5) ? 0.28 : 1;
   game.ts += (tsT - game.ts) * Math.min(1, rdt * (tsT < game.ts ? 14 : 2.5));
-  letterboxEl.classList.toggle('on', game.slowT > 0.15 && game.state === 'play');
-  const dt = game.state === 'play' ? rdt * game.ts : rdt;
+  letterboxEl.classList.toggle('on', (game.slowT > 0.15 && game.state === 'play') || game.state === 'dying' || (game.mode === 'mp' && game.state === 'play' && !mp.alive && mp.respawnT > 1));
+  const dt = game.state === 'play' || game.state === 'dying' ? rdt * game.ts : rdt;
+  if (game.state === 'dying' && game.mode === 'getaway') { const st = Math.max(1, Math.ceil(dt / (1 / 60))); for (let i = 0; i < st && game.state === 'dying'; i++) simStep(dt / st); }
   if (game.state === 'play') {
     if (input.fire && !prevFire) triggerFire();
     const steps = Math.max(1, Math.ceil(dt / (1 / 60))), h = dt / steps;
@@ -3245,7 +3328,7 @@ function frame(now) {
   prevFire = input.fire;
   netTick(now, rdt);
   if (game.state === 'menu' && $('#mp').classList.contains('open') && !$('#menu').hidden) mpRenderLobby();
-  if (game.state !== 'paused') { smoke.update(dt); fire.update(dt); updateFlashes(dt); }
+  if (game.state !== 'paused') { smoke.update(dt); fire.update(dt); updateFlashes(dt); updateDebris(dt); }
   pScale.value = renderer.domElement.height / (2 * Math.tan(camera.fov * Math.PI / 360));
   const focus = game.state === 'menu' ? camPos : player.pos;
   world.update(focus.x, focus.z, game.state === 'menu' ? 3 : 2);
