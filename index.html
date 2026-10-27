@@ -198,6 +198,13 @@ h1.small{font-size:clamp(20px,3.6vw,36px)}
 .mpanel #mpCode{font-size:1.8em;width:5em}.mpanel .plist li{font-size:.9em}.mpanel .roomhead .code{font-size:2.6em}
 .mpanel .settings .chip{font-size:.78em}
 .opts{display:grid;gap:.35em}
+.rooms{display:grid;gap:.4em}
+.room{display:grid;gap:.25em;text-align:left;padding:.8em 1em;background:rgba(255,255,255,.03);border:1px solid var(--line);border-left:2px solid var(--cyan)}
+.room b{font-family:var(--display);font-weight:400;letter-spacing:.12em;font-size:.95em;color:var(--ink)}
+.room span{font-size:.8em;color:var(--mute)}
+.room:hover,.room:focus-visible,body.input-pad .room:focus{background:rgba(71,228,255,.08);border-color:var(--cyan);outline:none}
+.scanning{font-size:.85em;color:var(--mute)}
+.scanning::before{content:'';display:inline-block;width:.5em;height:.5em;border-radius:50%;background:var(--cyan);margin-right:.6em;animation:blink 1s steps(2) infinite}
 .opt{display:flex;justify-content:space-between;align-items:center;gap:1em;padding:.8em 1em;background:rgba(255,255,255,.03);border:1px solid var(--line);font-size:.86em;letter-spacing:.12em;text-transform:uppercase;text-align:left}
 .opt b{color:var(--amber);font-weight:600}
 .opt:hover,.opt:focus-visible,body.input-pad .opt:focus{border-color:var(--amber);background:rgba(255,161,61,.08);outline:none}
@@ -282,11 +289,12 @@ body.input-pad .mode:focus,body.input-pad .btn:focus,body.input-pad input:focus{
         <div class="ptitle">Multiplayer · Dogfight</div>
         <div class="muted">Up to 8 pilots on the same Wi-Fi or hotspot. Free for all or teams.</div>
         <div id="mpStart" style="display:grid;gap:.7em">
-          <button class="btn" id="mpHost">Create match</button>
-          <div class="joinrow"><input id="mpCode" inputmode="numeric" pattern="[0-9]*" maxlength="3" placeholder="···" autocomplete="off" aria-label="3-digit match code"><button class="btn ghost" id="mpJoin">Join match</button></div>
+          <button class="btn" id="mpHost">Host a match</button>
+          <div class="chead">Matches on this network</div>
+          <div class="rooms" id="mpRooms"></div>
         </div>
         <div id="mpRoom" style="display:grid;gap:.7em" hidden></div>
-        <div class="muted" id="mpStatus">One device creates the match. Everyone else types its 3-digit code. Keep all devices on the same Wi-Fi or hotspot.</div>
+        <div class="muted" id="mpStatus"></div>
       </div>
       <div class="mpanel" id="pExit">
         <div class="ptitle">Exit game</div>
@@ -304,6 +312,7 @@ body.input-pad .mode:focus,body.input-pad .btn:focus,body.input-pad input:focus{
           <button class="opt" id="vibBtn">Controller vibration <b>On</b></button>
           <button class="opt mouse-opt" id="mouseBtn">Mouse flying <b>On</b></button>
           <button class="opt mouse-opt" id="sensBtn">Mouse speed <b>Medium</b></button>
+          <button class="opt" id="nameBtn">Pilot name <b>VIPER</b></button>
           <button class="opt" id="ctrlBtn">Controls <b>View</b></button>
         </div>
         <div class="muted" id="vibMsg" aria-live="polite"></div>
@@ -391,7 +400,7 @@ body.input-pad .mode:focus,body.input-pad .btn:focus,body.input-pad input:focus{
    - Vehicle.step(input, dt, world): one flight model for the player, the
      cops and (through their own devices) every multiplayer pilot.
    - Multiplayer (same scheme as Pocket Racer): one device hosts a PeerJS
-     room "skz-<key>-<code>". Each device flies its own car and sends its
+     room "skz-<key>-<network tag>-<slot>"; others find it in the room list. Each device flies its own car and sends its
      pose ~30x/s; the host relays a state snapshot and the game events
      (missile launches, hits, kills). The victim's device decides hits.
    ===================================================================== */
@@ -442,7 +451,7 @@ const hemi = new THREE.HemisphereLight(0x8a8690, 0x3a2a1c, 0.9); scene.add(hemi)
 const sun = new THREE.DirectionalLight(0xffc890, 0.55); sun.position.set(-0.4, 1, 0.3); scene.add(sun);
 const fillL = new THREE.DirectionalLight(0x9fb4c8, 0.25); fillL.position.set(0.5, 0.2, -1); scene.add(fillL);
 
-const settings = { quality: store.get('quality', isTouch ? 'low' : 'high'), sound: store.get('sound', true), invertY: store.get('invertY', true), mouseFly: store.get('mouseFly', true), mouseSens: store.get('mouseSens', 1), vibration: store.get('vibration', true), autoFS: store.get('autoFS', true) };
+const settings = { quality: store.get('quality', isTouch ? 'low' : 'high'), sound: store.get('sound', true), invertY: store.get('invertY', true), mouseFly: store.get('mouseFly', true), mouseSens: store.get('mouseSens', 1), vibration: store.get('vibration', true), autoFS: store.get('autoFS', true), callsign: store.get('callsign', '') };
 let composer = null;
 try {
   if (THREE.EffectComposer && THREE.UnrealBloomPass) {
@@ -2624,19 +2633,30 @@ const KEY = (() => {
   try { k = localStorage.getItem('skz_key') || ''; } catch (_) { k = ''; }
   return KEY_RE.test(k) ? k : 'skz7h3m9qa2w';
 })();
-const INVITE_ROOM = (hashParams.get('r') || '').replace(/\D/g, '').slice(0, 3);
 const JOIN_TIMEOUT_MS = 15000, CLIENT_SILENCE_MS = 15000, HOST_SILENCE_MS = 6000, SEND_MS = 33, INTERP_MS = 100;
 const PEER_OPTIONS = { debug: 1, config: { iceServers: [
   { urls: 'stun:stun.l.google.com:19302' },
   { urls: 'stun:stun1.l.google.com:19302' },
   { urls: ['turn:eu-0.turn.peerjs.com:3478', 'turn:us-0.turn.peerjs.com:3478'], username: 'peerjs', credential: 'peerjsp' }
 ]}};
-const ICE_READY = Promise.resolve();
-const roomPeerId = code => `skz-${KEY}-${code}`;
+// Rooms are scoped to this network: every device on the same Wi-Fi or hotspot shares one public IP,
+// so a short tag derived from it keeps the room list local without any codes.
+let NET_TAG = 'x';
+const NET_TAG_READY = (async () => {
+  try {
+    const r = await Promise.race([fetch('https://api.ipify.org?format=json', { cache: 'no-store' }), new Promise((_, j) => setTimeout(() => j(new Error('timeout')), 4000))]);
+    const j = await r.json();
+    if (j && j.ip) { let h = 2166136261; for (const ch of String(j.ip)) h = Math.imul(h ^ ch.charCodeAt(0), 16777619) >>> 0; NET_TAG = h.toString(36); }
+  } catch (_) {}
+})();
+const ROOM_SLOTS = 12;
+const roomPeerId = slot => `skz-${KEY}-${NET_TAG}-${slot}`;
+const CALLSIGNS = ['VIPER', 'NOMAD', 'RAVEN', 'GHOST', 'ECHO', 'NOVA', 'KESTREL', 'ONYX', 'RONIN', 'SABLE', 'JINX', 'HALO', 'WRAITH', 'DRIFT', 'ORBIT', 'LYNX', 'CINDER', 'VOLT'];
+const cleanName = n => String(n || '').toUpperCase().replace(/[^A-Z0-9 -]/g, '').trim().slice(0, 12);
+if (!settings.callsign) { settings.callsign = CALLSIGNS[Math.random() * CALLSIGNS.length | 0]; store.set('callsign', settings.callsign); }
 const NET = { peer: null, conns: new Map(), isHost: false, connected: false, code: '', myId: '', players: {}, phase: 'lobby', mode: 'ffa',
   cdEnd: 0, endAt: 0, lastBroadcast: 0, lastPosSend: 0, lastStateAt: 0, lastSeen: {}, bufs: {}, joinTimer: 0, warned: false, lobbyKey: null };
 const webPage = () => /^https?:$/.test(location.protocol);
-const joinLink = () => location.origin + location.pathname + '#k=' + KEY + '&r=' + NET.code;
 const nameOf = id => (NET.players[id] && NET.players[id].name) || 'PILOT';
 const colorOf = p => NET.mode === 'tdm' ? TEAM_COLORS[p.team] : MP_COLORS[p.idx % 8];
 
@@ -2647,7 +2667,7 @@ function hostConn() { return NET.conns.values().next().value; }
 function netSend(msg) { if (!NET.connected) return; if (NET.isHost) hostEvent(NET.myId, msg); else send(hostConn(), msg); }
 function errorText(e) {
   switch (e.type) {
-    case 'peer-unavailable': return `No match with code ${NET.code}. Check the code. The host must keep the match open on screen.`;
+    case 'peer-unavailable': return 'That match has closed.';
     case 'browser-incompatible': return 'This browser cannot do WebRTC. Use an up-to-date Chrome or Safari.';
     case 'network': case 'server-error': case 'socket-error': case 'socket-closed': return 'Cannot reach the connection server. Check the internet connection. Inside the Claude preview, multiplayer is blocked: open the standalone file instead.';
     case 'webrtc': return 'Direct connection failed. Put every device on the same Wi-Fi or hotspot.';
@@ -2696,39 +2716,50 @@ function rebalanceTeams() { Object.values(NET.players).sort((a, b) => a.idx - b.
 
 /* host */
 async function mpHost() {
-  mpMsg('Creating match…'); await ICE_READY;
+  mpMsg('Creating match…'); await NET_TAG_READY;
   if (!window.Peer) return mpMsg('The connection library did not load. Check the internet and reload.', true);
-  mpCleanup(); NET.isHost = true; mpMsg('Creating match…');
-  openHostPeer(0);
+  scanStop(); mpCleanup(); NET.isHost = true;
+  openHostPeer(1);
 }
-function openHostPeer(attempt) {
-  const code = String(100 + Math.floor(Math.random() * 900));
-  const p = new Peer(roomPeerId(code), PEER_OPTIONS); NET.peer = p;
+function openHostPeer(slot) {
+  const p = new Peer(roomPeerId(slot), PEER_OPTIONS); NET.peer = p;
   p.on('open', id => {
     if (NET.peer !== p) return;
     if (NET.myId) { toast('Back online'); return; }
-    NET.myId = id; NET.code = code; NET.connected = true;
-    NET.players = {}; addPlayer(id); NET.phase = 'lobby'; NET.lobbyKey = null;
-    mpMsg('Match open. Others type the code. Same Wi-Fi or hotspot for everyone.');
+    NET.myId = id; NET.code = String(slot); NET.connected = true;
+    NET.players = {}; const me = addPlayer(id); me.name = settings.callsign; NET.phase = 'lobby'; NET.lobbyKey = null;
+    mpMsg('Your match is open. Other devices on this Wi-Fi or hotspot see it under Multiplayer.');
   });
   p.on('connection', conn => { if (NET.peer === p) hostAccept(conn); });
   p.on('disconnected', () => reconnectSignal(p));
   p.on('error', e => {
     if (NET.peer !== p) return;
-    if (e.type === 'unavailable-id' && !NET.myId && attempt < 6) { try { p.destroy(); } catch (_) {} openHostPeer(attempt + 1); return; }
+    if (e.type === 'unavailable-id' && !NET.myId) {
+      try { p.destroy(); } catch (_) {}
+      if (slot < ROOM_SLOTS) openHostPeer(slot + 1); else { mpCleanup(); mpMsg('All match slots on this network are in use.', true); }
+      return;
+    }
     console.error(e); mpNotify(errorText(e));
   });
 }
 function hostAccept(conn) {
-  conn.on('open', () => {
-    if (!NET.isHost || !NET.connected) return;
-    if (!addPlayer(conn.peer)) { send(conn, { type: 'full' }); setTimeout(() => { try { conn.close(); } catch (_) {} }, 400); return; }
-    NET.conns.set(conn.peer, conn); NET.lastSeen[conn.peer] = performance.now();
-    pushState();
-    toast(NET.players[conn.peer].name + ' joined', 'cyan');
-  });
+  // a connection is either a room-list probe ('info?') or a pilot joining ('join')
   conn.on('data', msg => {
-    if (!msg || typeof msg !== 'object' || NET.conns.get(conn.peer) !== conn) return;
+    if (!msg || typeof msg !== 'object') return;
+    if (msg.type === 'info?') {
+      send(conn, { type: 'info', name: settings.callsign, count: Object.keys(NET.players).length, max: MP_MAX, mode: NET.mode, phase: NET.phase });
+      return;
+    }
+    if (msg.type === 'join') {
+      if (!NET.isHost || !NET.connected || NET.conns.has(conn.peer)) return;
+      const p = addPlayer(conn.peer);
+      if (!p) { send(conn, { type: 'full' }); setTimeout(() => { try { conn.close(); } catch (_) {} }, 400); return; }
+      p.name = cleanName(msg.name) || p.name;
+      NET.conns.set(conn.peer, conn); NET.lastSeen[conn.peer] = performance.now();
+      pushState(); toast(p.name + ' joined', 'cyan');
+      return;
+    }
+    if (NET.conns.get(conn.peer) !== conn) return;
     NET.lastSeen[conn.peer] = performance.now();
     if (msg.type === 'pos') {
       const p = NET.players[conn.peer];
@@ -2798,43 +2829,89 @@ function startMatch() {
 }
 
 /* client */
-async function mpJoin(raw) {
-  await ICE_READY;
+async function mpJoin(slot) {
+  await NET_TAG_READY;
   if (!window.Peer) return mpMsg('The connection library did not load. Check the internet and reload.', true);
-  const code = String(raw || $('#mpCode').value).replace(/\D/g, '');
-  if (code.length !== 3) { mpMsg('Type the 3-digit code shown on the host device.', true); return; }
-  mpCleanup(); NET.isHost = false; NET.code = code; mpMsg(`Joining match ${code}…`);
+  const room = SCAN.rooms.get(slot);
+  scanStop(); mpCleanup(); NET.isHost = false; NET.code = String(slot); NET.roomName = room ? room.name : '';
+  mpMsg('Joining ' + (room ? room.name + "'s match" : 'match') + '…');
   const p = new Peer(PEER_OPTIONS); NET.peer = p;
   p.on('open', id => {
     if (NET.peer !== p || NET.myId) return;
     NET.myId = id;
-    const conn = p.connect(roomPeerId(code), { reliable: true, serialization: 'json' });
+    const conn = p.connect(roomPeerId(slot), { reliable: true, serialization: 'json' });
     NET.conns.set(conn.peer, conn);
     clearTimeout(NET.joinTimer);
     NET.joinTimer = setTimeout(() => {
       if (NET.peer !== p || conn.open) return;
-      mpCleanup(); mpMsg('Found the match but the devices could not link up. Put everyone on the same Wi-Fi or hotspot (not a guest network) and try again.', true);
+      mpCleanup(); mpMsg('Found the match but the devices could not link up. Make sure both are on the same Wi-Fi or hotspot (not a guest network) and try again.', true);
     }, JOIN_TIMEOUT_MS);
     conn.on('open', () => {
       if (NET.peer !== p) return;
+      send(conn, { type: 'join', name: settings.callsign });
       clearTimeout(NET.joinTimer); NET.connected = true; NET.lastStateAt = performance.now(); NET.warned = false; NET.lobbyKey = null;
       mpMsg('Connected. Waiting for the host to start.');
     });
     conn.on('data', clientData);
-    conn.on('close', () => {
-      if (NET.conns.get(conn.peer) !== conn) return;
-      mpLeave('Lost the connection to the host.', true);
-      $('#mpCode').value = code;
-    });
+    conn.on('close', () => { if (NET.conns.get(conn.peer) === conn) mpLeave('Lost the connection to the host.', true); });
     conn.on('error', e => console.warn('connection error', e));
   });
   p.on('disconnected', () => reconnectSignal(p));
   p.on('error', e => {
     if (NET.peer !== p) return;
     clearTimeout(NET.joinTimer); console.error(e);
-    if (!NET.connected) { mpCleanup(); $('#mpCode').value = code; mpMsg(errorText(e), true); }
+    if (!NET.connected) { mpCleanup(); mpMsg(errorText(e), true); }
     else toast(errorText(e), 'red');
   });
+}
+
+/* room list: probe each slot on this network every few seconds */
+const SCAN = { peer: null, ready: false, rooms: new Map(), busy: new Map(), lastRun: 0, lastWant: 0 };
+function scanStart() {
+  if (SCAN.peer || !window.Peer) return;
+  const p = new Peer(PEER_OPTIONS); SCAN.peer = p; SCAN.ready = false;
+  p.on('open', () => { if (SCAN.peer === p) SCAN.ready = true; });
+  p.on('disconnected', () => { if (SCAN.peer === p) { try { p.reconnect(); } catch (_) {} } });
+  p.on('error', e => {
+    if (SCAN.peer !== p) return;
+    if (e.type === 'peer-unavailable') { const m = /-(\d+)\s*$/.exec(e.message || ''); if (m) { SCAN.rooms.delete(+m[1]); SCAN.busy.delete(+m[1]); } }
+    else if (['network', 'server-error', 'socket-error', 'socket-closed', 'browser-incompatible'].includes(e.type)) { scanStop(); SCAN.failed = errorText(e); }
+  });
+}
+function scanStop() { if (SCAN.peer) { try { SCAN.peer.destroy(); } catch (_) {} } SCAN.peer = null; SCAN.ready = false; SCAN.busy.clear(); }
+function probeSlot(slot) {
+  const started = performance.now(); SCAN.busy.set(slot, started);
+  let conn;
+  try { conn = SCAN.peer.connect(roomPeerId(slot), { reliable: true, serialization: 'json' }); } catch (_) { SCAN.busy.delete(slot); return; }
+  const done = () => { if (SCAN.busy.get(slot) === started) SCAN.busy.delete(slot); try { conn.close(); } catch (_) {} };
+  const timer = setTimeout(() => { if (SCAN.busy.get(slot) === started) SCAN.rooms.delete(slot); done(); }, 6000);
+  conn.on('open', () => send(conn, { type: 'info?' }));
+  conn.on('data', msg => {
+    if (!msg || msg.type !== 'info') return;
+    SCAN.rooms.set(slot, { slot, name: cleanName(msg.name) || 'PILOT', count: Math.max(1, +msg.count || 1), max: +msg.max || MP_MAX, mode: msg.mode === 'tdm' ? 'tdm' : 'ffa', phase: String(msg.phase || 'lobby'), seen: performance.now() });
+    clearTimeout(timer); done();
+  });
+  conn.on('error', () => { clearTimeout(timer); done(); });
+}
+function scanTick(now) {
+  const want = game.state === 'menu' && !$('#menu').hidden && $('#mp').classList.contains('open') && !NET.connected && !NET.peer;
+  if (!want) { if (SCAN.peer && now - SCAN.lastWant > 4000) scanStop(); return; }
+  SCAN.lastWant = now;
+  if (!SCAN.peer) { if (!SCAN.failed) NET_TAG_READY.then(scanStart); return; }
+  if (!SCAN.ready || now - SCAN.lastRun < 3000) return;
+  SCAN.lastRun = now;
+  for (let slot = 1; slot <= ROOM_SLOTS; slot++) if (!SCAN.busy.has(slot)) probeSlot(slot);
+  for (const [k, r] of SCAN.rooms) if (now - r.seen > 10000) SCAN.rooms.delete(k);
+}
+function renderRooms() {
+  const el = $('#mpRooms'); if (!el) return;
+  const list = [...SCAN.rooms.values()].sort((a, b) => a.slot - b.slot);
+  const key = SCAN.failed ? 'fail' : list.map(r => [r.slot, r.name, r.count, r.mode, r.phase].join(':')).join('|') || 'none';
+  if (el.dataset.key === key) return; el.dataset.key = key;
+  if (SCAN.failed) { el.innerHTML = `<div class="muted err">${SCAN.failed}</div>`; return; }
+  if (!list.length) { el.innerHTML = '<div class="scanning">Looking for matches on this Wi-Fi or hotspot…</div>'; return; }
+  const phaseTxt = ph => ph === 'lobby' ? 'In lobby' : ph === 'ended' ? 'Match ending' : 'In progress';
+  el.innerHTML = list.map(r => `<button class="room" data-act="join" data-slot="${r.slot}"${r.count >= r.max ? ' disabled' : ''}><b>${r.name}'S MATCH</b><span>${r.count}/${r.max} pilots · ${r.mode === 'tdm' ? 'Team deathmatch' : 'Free for all'} · ${r.count >= r.max ? 'Full' : phaseTxt(r.phase)}</span></button>`).join('');
 }
 function clientData(msg) {
   if (!msg || typeof msg !== 'object') return;
@@ -2898,11 +2975,11 @@ function mpLeave(message, err) {
   mpCleanup();
   game.state = 'menu'; game.mode = null; setModeClass(null);
   hideWorldActors(); showMenuPanel('mp');
-  mpMsg(message || 'Left the match. Create a new one or join with a code.', err);
+  mpMsg(message || '', err); SCAN.rooms.clear();
 }
 function openMp() {
   Snd.init(); showMenuPanel('mp');
-  if (!NET.connected) mpMsg('One device creates the match. Everyone else types its 3-digit code. Keep all devices on the same Wi-Fi or hotspot.');
+  if (!NET.connected) mpMsg('');
 }
 
 /* phases: lobby → countdown → playing → ended */
@@ -3055,7 +3132,8 @@ function modeLine() { return `First to ${KILL_LIMIT[NET.mode]} kills · 6 minute
 function mpRenderLobby() {
   const room = $('#mpRoom'), start = $('#mpStart');
   const inRoom = NET.connected && NET.phase === 'lobby';
-  start.hidden = NET.connected; room.hidden = !inRoom;
+  start.hidden = NET.connected || !!NET.peer; room.hidden = !inRoom;
+  if (!NET.connected && !NET.peer) renderRooms();
   if (!inRoom) return;
   const list = Object.entries(NET.players).sort((a, b) => a[1].idx - b[1].idx);
   const key = [NET.isHost, NET.code, NET.mode, list.map(([id, p]) => id + p.idx + p.team).join()].join('|');
@@ -3063,7 +3141,7 @@ function mpRenderLobby() {
   const tdm = NET.mode === 'tdm';
   const rows = list.map(([id, p]) => `<li${NET.isHost && tdm ? ` data-act="swap" data-id="${id}"` : ''}><i style="background:${colorOf(p)}"></i>${p.name}${id === NET.myId ? ' · you' : ''}${tdm ? `<span>${TEAM_NAMES[p.team]}</span>` : ''}</li>`).join('');
   room.innerHTML = `
-    <div class="roomhead"><div><div class="lbl">Match code</div><div class="code">${NET.code}</div></div></div>
+    <div class="chead">${NET.isHost ? 'Your match' : (((NET.players[Object.keys(NET.players).find(id => NET.players[id].idx === 0)] || {}).name || NET.roomName || 'PILOT') + "'s match")}</div>
     <ul class="plist">${rows}</ul>` + (NET.isHost ? `
     <div class="settings"><button class="chip ${tdm ? '' : 'sel'}" data-act="ffa">Free for all</button><button class="chip ${tdm ? 'sel' : ''}" data-act="tdm">Team deathmatch</button></div>
     <div class="muted">${modeLine()}${tdm ? ' · tap a pilot to switch team' : ''}</div>
@@ -3076,6 +3154,7 @@ $('#mp').addEventListener('click', e => {
   const act = b.dataset.act;
   if (act === 'start') startMatch();
   else if (act === 'leave') mpLeave();
+  else if (act === 'join') mpJoin(+b.dataset.slot);
   else if ((act === 'ffa' || act === 'tdm') && NET.isHost) { NET.mode = act; if (act === 'tdm') rebalanceTeams(); NET.lobbyKey = null; pushState(); }
   else if (act === 'swap' && NET.isHost) { const p = NET.players[b.dataset.id]; if (p) { p.team = 1 - p.team; NET.lobbyKey = null; pushState(); } }
 });
@@ -3328,6 +3407,7 @@ function frame(now) {
   prevFire = input.fire;
   netTick(now, rdt);
   if (game.state === 'menu' && $('#mp').classList.contains('open') && !$('#menu').hidden) mpRenderLobby();
+  scanTick(now);
   if (game.state !== 'paused') { smoke.update(dt); fire.update(dt); updateFlashes(dt); updateDebris(dt); }
   pScale.value = renderer.domElement.height / (2 * Math.tan(camera.fov * Math.PI / 360));
   const focus = game.state === 'menu' ? camPos : player.pos;
@@ -3381,6 +3461,7 @@ function applySettingsUI() {
   $('#qBtn').innerHTML = 'Graphics <b>' + (settings.quality === 'high' ? 'High' : 'Low') + '</b>';
   $('#sBtn').innerHTML = 'Sound <b>' + (settings.sound ? 'On' : 'Off') + '</b>';
   $('#vibBtn').innerHTML = 'Controller vibration <b>' + (settings.vibration ? 'On' : 'Off') + '</b>';
+  $('#nameBtn').innerHTML = 'Pilot name <b>' + settings.callsign + '</b>';
   $('#autoFsBtn').innerHTML = 'Start in fullscreen <b>' + (settings.autoFS ? 'On' : 'Off') + '</b>';
   $('#invBtn').innerHTML = 'Invert flight controls <b>' + (settings.invertY ? 'On' : 'Off') + '</b>';
   const sensName = settings.mouseSens < 0.8 ? 'Low' : settings.mouseSens > 1.3 ? 'High' : 'Medium';
@@ -3393,13 +3474,6 @@ function toggleSound() { settings.sound = !settings.sound; store.set('sound', se
 $('#mGetaway').addEventListener('click', () => startRun('getaway'));
 $('#mCruise').addEventListener('click', () => startRun('cruise'));
 $('#mpHost').addEventListener('click', mpHost);
-$('#mpJoin').addEventListener('click', () => mpJoin());
-$('#mpCode').addEventListener('input', e => {
-  const v = e.target.value.replace(/\D/g, '').slice(0, 3);
-  if (v !== e.target.value) e.target.value = v;
-  if (v.length === 3) { e.target.blur(); mpJoin(v); }
-});
-$('#mpCode').addEventListener('keydown', e => { if (e.key === 'Enter') mpJoin(); });
 $('#qBtn').addEventListener('click', () => { settings.quality = settings.quality === 'high' ? 'low' : 'high'; store.set('quality', settings.quality); applySettingsUI(); resize(); });
 $('#sBtn').addEventListener('click', toggleSound);
 $('#vibBtn').addEventListener('click', () => {
@@ -3409,6 +3483,10 @@ $('#vibBtn').addEventListener('click', () => {
   if (!act) msg.textContent = 'No controller detected. Press a button on it first.';
   else if (act.kind === 'none') msg.textContent = 'This browser does not offer vibration for this controller. Chrome or Edge with an Xbox or PlayStation controller works best.';
   else { rumble(0.6, 0.8, 350, true); msg.textContent = 'Test rumble sent to ' + act.gp.id.replace(/\s*\(.*$/, '') + '.'; }
+});
+$('#nameBtn').addEventListener('click', () => {
+  const others = CALLSIGNS.filter(n => n !== settings.callsign);
+  settings.callsign = others[Math.random() * others.length | 0]; store.set('callsign', settings.callsign); applySettingsUI();
 });
 $('#ctrlBtn').addEventListener('click', () => openPanel('pControls', inputMode === 'pad'));
 $('#ctrlBack').addEventListener('click', () => openPanel('pSettings', inputMode === 'pad'));
@@ -3471,7 +3549,6 @@ if (!fsOk) $('#autoFsBtn').hidden = true;
 addEventListener('resize', resize);
 resize(); applySettingsUI(); renderBest();
 world.update(camPos.x, camPos.z, 99);
-if (INVITE_ROOM.length === 3) { openMp(); $('#mpCode').value = INVITE_ROOM; mpJoin(INVITE_ROOM); }
 requestAnimationFrame(frame);
 })();
 </script>
