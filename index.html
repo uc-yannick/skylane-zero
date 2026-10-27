@@ -179,6 +179,33 @@ h1.small{font-size:clamp(20px,3.6vw,36px)}
 .plist li[data-act]{cursor:pointer}
 .plist li i{width:10px;height:10px;transform:skewX(-14deg)}
 .plist li span{margin-left:auto;font-size:10px;letter-spacing:.14em;color:var(--mute)}
+/* ---- sliding menus ---- */
+.mwrap{display:flex;align-items:center;gap:clamp(16px,3vw,56px);width:100%;font-size:calc(14px * var(--ui));padding-left:clamp(0px,3vw,40px)}
+.mside{flex:0 0 auto;width:min(21em,40vw);display:grid;gap:1.1em;align-content:center}
+.mside h1{font-size:2.7em}.mside h1.small{font-size:2em}
+.mside .eyebrow{font-size:.8em}.mside .best{font-size:.8em;min-height:1em}
+.mlist{display:grid;gap:.2em}
+.mbtn{display:flex;align-items:center;text-align:left;font-family:var(--display);font-size:1.12em;letter-spacing:.14em;text-transform:uppercase;padding:.75em 1em;background:transparent;border:0;border-left:2px solid transparent;color:var(--ink);opacity:.6;transition:opacity .15s,background .2s,border-color .2s,padding-left .2s}
+.mbtn::after{content:'\203A';margin-left:auto;opacity:0;transition:opacity .2s}
+.mbtn:hover,.mbtn:focus-visible,.mbtn.active,body.input-pad .mbtn:focus{opacity:1;border-left-color:var(--amber);background:linear-gradient(90deg,rgba(255,161,61,.16),rgba(255,161,61,0));padding-left:1.3em;outline:none}
+.mbtn.active::after{opacity:1}
+.mpanels{position:relative;flex:1 1 auto;min-width:0;max-width:34em;height:min(34em,86vh)}
+.mpanel{position:absolute;left:0;right:0;top:50%;max-height:100%;overflow:auto;display:grid;gap:.9em;align-content:start;padding:1.4em;background:var(--panel);border:1px solid var(--line);border-left:2px solid var(--amber);opacity:0;visibility:hidden;transform:translate(-1.6em,-50%);transition:opacity .22s ease,transform .32s cubic-bezier(.2,.8,.2,1),visibility 0s linear .32s}
+.mpanel.open{opacity:1;visibility:visible;transform:translateY(-50%);transition:opacity .22s ease,transform .32s cubic-bezier(.2,.8,.2,1),visibility 0s}
+.ptitle{font-family:var(--display);font-size:1.05em;letter-spacing:.16em;text-transform:uppercase;color:var(--amber)}
+.mpanel .mode{font-size:1em;padding:1em 1.1em}.mpanel .mode strong{font-size:1.05em}.mpanel .mode span{font-size:.88em}
+.mpanel .btn{font-size:.86em;padding:.9em 1em;min-width:0}.mpanel .muted{font-size:.9em}
+.mpanel #mpCode{font-size:1.8em;width:5em}.mpanel .plist li{font-size:.9em}.mpanel .roomhead .code{font-size:2.6em}
+.mpanel .settings .chip{font-size:.78em}
+.opts{display:grid;gap:.35em}
+.opt{display:flex;justify-content:space-between;align-items:center;gap:1em;padding:.8em 1em;background:rgba(255,255,255,.03);border:1px solid var(--line);font-size:.86em;letter-spacing:.12em;text-transform:uppercase;text-align:left}
+.opt b{color:var(--amber);font-weight:600}
+.opt:hover,.opt:focus-visible,body.input-pad .opt:focus{border-color:var(--amber);background:rgba(255,161,61,.08);outline:none}
+.chead{font-size:.72em;letter-spacing:.18em;text-transform:uppercase;color:var(--mute);margin-top:.3em}
+.cmap{display:grid;grid-template-columns:auto 1fr;gap:.4em 1.2em;margin:0;font-size:.86em}
+.cmap dt{font-family:var(--mono);color:var(--ink);white-space:nowrap}.cmap dd{margin:0;color:var(--mute)}
+body.input-pad .mode:focus,body.input-pad .btn:focus,body.input-pad input:focus{outline:2px solid var(--cyan);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.mpanel,.mpanel.open{transition:none}}
 #rotate{flex-direction:column;justify-content:center;gap:12px;background:var(--void);text-align:center;z-index:50}
 #rotate svg{width:64px;height:64px;color:var(--amber)}
 @media (prefers-reduced-motion:reduce){.warnline{animation:none}}
@@ -233,49 +260,99 @@ h1.small{font-size:clamp(20px,3.6vw,36px)}
 </div>
 
 <section class="screen side" id="menu">
-  <div class="mi">
-    <div class="eyebrow" id="clock">SECTOR 9 · 02:47 · RAIN 94% · AIRSPACE CEILING 200 M</div>
-    <h1>SKYLANE <em>ZERO</em></h1>
-    <p class="tag">The city never stops building upward. You move packages through it, and the patrol wants them back.</p>
-    <div class="modes">
-      <button class="mode" id="mGetaway"><kbd>1</kbd><strong>GETAWAY</strong><span>Run the package from pickup to drop. Lock on and shoot down the cruisers chasing you.</span></button>
-      <button class="mode cy" id="mCruise"><kbd>2</kbd><strong>NIGHT DRIVE</strong><span>No patrols, no clock. Just the rain, the traffic lanes and the skyline.</span></button>
-      <button class="mode mg" id="mDogfight"><kbd>3</kbd><strong>DOGFIGHT</strong><span>Up to 8 players on the same Wi-Fi or hotspot. Free for all or teams.</span></button>
+  <div class="mwrap">
+    <div class="mside">
+      <div class="eyebrow" id="clock">SECTOR 9 · 02:47 · RAIN 94%</div>
+      <h1>SKYLANE <em>ZERO</em></h1>
+      <nav class="mlist" aria-label="Main menu">
+        <button class="mbtn" data-panel="pSingle">Single player</button>
+        <button class="mbtn" data-panel="mp">Multiplayer</button>
+        <button class="mbtn" data-panel="pSettings">Settings</button>
+        <button class="mbtn" data-panel="pExit">Exit game</button>
+      </nav>
+      <div class="best" id="best"></div>
     </div>
-    <div class="settings">
-      <button class="chip" id="qBtn">Graphics <b>High</b></button>
-      <button class="chip" id="sBtn">Sound <b>On</b></button>
-      <button class="chip" id="invBtn">Invert flight controls <b>On</b></button>
-      <button class="chip mouse-opt" id="mouseBtn">Mouse flying <b>On</b></button>
-      <button class="chip mouse-opt" id="sensBtn">Mouse speed <b>Medium</b></button>
-      <button class="chip" id="fsChip">Fullscreen <b>Off</b></button>
-      <span class="best" id="best"></span>
+    <div class="mpanels">
+      <div class="mpanel" id="pSingle">
+        <div class="ptitle">Single player</div>
+        <button class="mode" id="mGetaway"><strong>GETAWAY</strong><span>Run the package from pickup to drop. Lock on and shoot down the cruisers chasing you.</span></button>
+        <button class="mode cy" id="mCruise"><strong>NIGHT DRIVE</strong><span>No patrols, no clock. Just the rain, the traffic lanes and the skyline.</span></button>
+      </div>
+      <div class="mpanel" id="mp">
+        <div class="ptitle">Multiplayer · Dogfight</div>
+        <div class="muted">Up to 8 pilots on the same Wi-Fi or hotspot. Free for all or teams.</div>
+        <div id="mpStart" style="display:grid;gap:.7em">
+          <button class="btn" id="mpHost">Create match</button>
+          <div class="joinrow"><input id="mpCode" inputmode="numeric" pattern="[0-9]*" maxlength="3" placeholder="···" autocomplete="off" aria-label="3-digit match code"><button class="btn ghost" id="mpJoin">Join match</button></div>
+        </div>
+        <div id="mpRoom" style="display:grid;gap:.7em" hidden></div>
+        <div class="muted" id="mpStatus">One device creates the match. Everyone else types its 3-digit code. Keep all devices on the same Wi-Fi or hotspot.</div>
+      </div>
+      <div class="mpanel" id="pExit">
+        <div class="ptitle">Exit game</div>
+        <div class="muted" id="exitMsg">A web page can't close itself. Leave fullscreen, then close this browser tab to quit.</div>
+        <button class="btn" id="exitBtn">Leave fullscreen</button>
+      </div>
+      <div class="mpanel" id="pSettings">
+        <div class="ptitle">Settings</div>
+        <div class="opts">
+          <button class="opt" id="qBtn">Graphics <b>High</b></button>
+          <button class="opt" id="sBtn">Sound <b>On</b></button>
+          <button class="opt" id="fsChip">Fullscreen <b>Off</b></button>
+          <button class="opt" id="invBtn">Invert flight controls <b>On</b></button>
+          <button class="opt" id="vibBtn">Controller vibration <b>On</b></button>
+          <button class="opt mouse-opt" id="mouseBtn">Mouse flying <b>On</b></button>
+          <button class="opt mouse-opt" id="sensBtn">Mouse speed <b>Medium</b></button>
+          <button class="opt" id="ctrlBtn">Controls <b>View</b></button>
+        </div>
+      </div>
+      <div class="mpanel" id="pControls">
+        <div class="ptitle">Controls</div>
+        <div class="chead">Controller</div>
+        <dl class="cmap">
+          <dt>Left stick</dt><dd>Steer, climb and dive</dd>
+          <dt>Right stick</dt><dd>Throttle: up to accelerate, down to brake and reverse</dd>
+          <dt>R1</dt><dd>Fire missiles</dd>
+          <dt>R3 / L1</dt><dd>Boost (R3 click toggles, L1 hold)</dd>
+          <dt>B</dt><dd>Hold to look back</dd>
+          <dt>Start</dt><dd>Menu</dd>
+          <dt>D-pad / A / B</dt><dd>Move, select and go back in menus</dd>
+        </dl>
+        <div class="chead">Keyboard and mouse</div>
+        <dl class="cmap">
+          <dt>W / S</dt><dd>Throttle and brake</dd>
+          <dt>A / D</dt><dd>Steer</dd>
+          <dt>Space / C</dt><dd>Climb / dive</dd>
+          <dt>Shift</dt><dd>Boost</dd>
+          <dt>F</dt><dd>Fire missiles</dd>
+          <dt>B</dt><dd>Hold to look back</dd>
+          <dt>Mouse</dt><dd>Click to capture, move to steer and climb, left click fires, right click boosts</dd>
+          <dt>Esc</dt><dd>Menu and release the mouse</dd>
+        </dl>
+        <div class="chead">Touch</div>
+        <dl class="cmap">
+          <dt>Left stick</dt><dd>Steer, climb and dive</dd>
+          <dt>Right lever</dt><dd>Throttle, push into the top band to boost</dd>
+          <dt>FIRE</dt><dd>Fire missiles</dd>
+        </dl>
+        <button class="btn ghost" id="ctrlBack">Back to settings</button>
+      </div>
     </div>
-    <div class="keys" id="keys"><b>W/S</b> throttle · <b>A/D</b> steer · <b>Space</b> rise · <b>C</b> dive · <b>Shift</b> boost · <b>F</b> fire · <b>B</b> look back · <b>Esc</b> menu<br><b>Mouse</b> click to capture · move to steer and climb · <b>left click</b> fire · <b>right click</b> boost · Esc releases<br><b>Controller</b> left stick throttle · right stick steer and climb · <b>R1</b> fire · <b>L3</b> boost · <b>B</b> look back · <b>Start</b> menu</div>
   </div>
 </section>
 
-<section class="screen side" id="mp" hidden>
-  <div class="mi">
-    <div class="eyebrow">SAME WI-FI OR HOTSPOT · UP TO 8 PILOTS · NO PATROLS</div>
-    <h1 class="small">DOGFIGHT</h1>
-    <div id="mpStart" style="display:grid;gap:12px">
-      <div class="row"><button class="btn" id="mpHost">Create match</button></div>
-      <div class="joinrow"><input id="mpCode" inputmode="numeric" pattern="[0-9]*" maxlength="3" placeholder="···" autocomplete="off" aria-label="3-digit match code"><button class="btn ghost" id="mpJoin">Join match</button></div>
-      <div class="row"><button class="btn ghost" id="mpBack">Back</button></div>
+<section class="screen side" id="pause" hidden>
+  <div class="mwrap">
+    <div class="mside">
+      <h1 class="small" id="pauseTitle">PAUSED</h1>
+      <nav class="mlist" aria-label="Pause menu">
+        <button class="mbtn" id="resume">Resume</button>
+        <button class="mbtn" id="restart">Restart</button>
+        <button class="mbtn" data-panel="pSettings">Settings</button>
+        <button class="mbtn" id="quit">Main menu</button>
+      </nav>
     </div>
-    <div id="mpRoom" style="display:grid;gap:12px" hidden></div>
-    <div class="muted" id="mpStatus">One device creates the match. Everyone else types its 3-digit code. Keep all devices on the same Wi-Fi or hotspot.</div>
-  </div>
-</section>
-
-<section class="screen center" id="pause" hidden>
-  <div class="panel">
-    <h2 id="pauseTitle">PAUSED</h2>
-    <div class="row"><button class="btn" id="resume">Resume</button><button class="btn ghost" id="restart">Restart</button></div>
-    <div class="row"><button class="btn ghost" id="quit">Main menu</button><button class="btn ghost" id="sBtn2">Sound</button></div>
-    <div class="row"><button class="btn ghost" id="invBtn2">Invert flight controls</button><button class="btn ghost" id="fsBtn2">Fullscreen</button></div>
-    <div class="row mouse-opt"><button class="btn ghost" id="mouseBtn2">Mouse flying</button><button class="btn ghost" id="sensBtn2">Mouse speed</button></div>
+    <div class="mpanels"></div>
   </div>
 </section>
 
@@ -363,7 +440,7 @@ const hemi = new THREE.HemisphereLight(0x8a8690, 0x3a2a1c, 0.9); scene.add(hemi)
 const sun = new THREE.DirectionalLight(0xffc890, 0.55); sun.position.set(-0.4, 1, 0.3); scene.add(sun);
 const fillL = new THREE.DirectionalLight(0x9fb4c8, 0.25); fillL.position.set(0.5, 0.2, -1); scene.add(fillL);
 
-const settings = { quality: store.get('quality', isTouch ? 'low' : 'high'), sound: store.get('sound', true), invertY: store.get('invertY', true), mouseFly: store.get('mouseFly', true), mouseSens: store.get('mouseSens', 1) };
+const settings = { quality: store.get('quality', isTouch ? 'low' : 'high'), sound: store.get('sound', true), invertY: store.get('invertY', true), mouseFly: store.get('mouseFly', true), mouseSens: store.get('mouseSens', 1), vibration: store.get('vibration', true) };
 let composer = null;
 try {
   if (THREE.EffectComposer && THREE.UnrealBloomPass) {
@@ -382,7 +459,7 @@ const FOG_GLSL = `uniform vec3 uFog; uniform float uDen;
     float mist = (1.0 - smoothstep(0.0, 110.0, y)) * 0.62 * (1.0 - exp(-d * 0.0065));
     return clamp(max(f, mist), 0.0, 1.0); }`;
 const buildingMat = new THREE.ShaderMaterial({
-  uniforms: fogUniforms,
+  uniforms: fogUniforms, extensions: { derivatives: true },
   vertexShader: `
     attribute vec4 aData; varying vec3 vW; varying vec3 vN; varying vec4 vD; varying vec2 vC;
     void main(){
@@ -393,9 +470,12 @@ const buildingMat = new THREE.ShaderMaterial({
   fragmentShader: `
     ${FOG_GLSL}
     varying vec3 vW; varying vec3 vN; varying vec4 vD; varying vec2 vC;
-    float h21(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
+    // exact whole-number hash: every step stays below 2^24, so all GPUs get bit-identical results
+    float modx(float x, float m){ float q = floor(x / m); float r = x - q * m; if (r < 0.0) r += m; if (r >= m) r -= m; return r; }
+    float ih(float n){ n = modx(n, 65521.0); n = modx(n * 223.0 + 71.0, 65521.0); n = modx(n * 211.0 + 13.0, 65521.0); n = modx(n * 197.0 + 101.0, 65521.0); return n / 65521.0; }
     void main(){
       float d = distance(vW, cameraPosition);
+      vec3 dW = fwidth(vW);   // pixel footprint in metres, taken outside any branch
       // per-building values arrive slightly jittered per pixel on some GPUs; snap them back to exact steps
       vec3 D = floor(vD.xyz * 1000.0 + 0.5) / 1000.0;
       float g = mix(0.042, 0.082, D.z);
@@ -411,17 +491,22 @@ const buildingMat = new THREE.ShaderMaterial({
         } else { vec2 tn = normalize(vec2(-vN.z, vN.x) + 1e-5); u = dot(vW.xz, tn); }
         float fh = mix(3.2, 4.2, fract(D.z * 7.31));
         vec2 gq = vec2(u / ww, vW.y / fh); vec2 cell = floor(gq); vec2 f = fract(gq);
-        float win = step(0.14,f.x)*step(f.x,0.86)*step(0.24,f.y)*step(f.y,0.76);
+        // antialiased window edges; once a window is only a few pixels big, fade to its average glow
+        vec2 fw = vec2(length(dW.xz) / ww, dW.y / fh); vec2 e = clamp(fw * 0.75, 0.001, 0.5);
+        vec2 wm = smoothstep(vec2(0.14, 0.24) - e, vec2(0.14, 0.24) + e, f) * (1.0 - smoothstep(vec2(0.86, 0.76) - e, vec2(0.86, 0.76) + e, f));
+        float win = wm.x * wm.y;
+        float detail = (1.0 - smoothstep(0.2, 0.5, max(fw.x, fw.y))) * (1.0 - smoothstep(260.0, 620.0, d));
         float side = vD.w > 0.5 ? 0.0 : dot(floor(vN.xz * 1.5 + 0.5), vec2(3.0, 7.0));
-        float r = h21(cell + vec2(D.x*97.0 + side*13.1, D.x*31.0));
+        float seed = floor(vD.x * 1000.0 + 0.5);
+        float n0 = modx(cell.x, 1024.0) + modx(cell.y, 512.0) * 1031.0 + seed * 7919.0 + side * 104729.0;
+        float r = ih(n0);
         float lit = step(1.0 - D.y, r);
-        float pick = h21(cell*1.37 + D.x*11.0);
+        float pick = ih(n0 + 5003.0);
         vec3 wc = pick < 0.8 ? vec3(1.0,0.68,0.34) : (pick < 0.95 ? vec3(0.72,0.42,0.17) : vec3(0.62,0.65,0.68));
-        float bright = 0.45 + 0.8 * h21(cell + 7.7);
-        col += win * (1.0 - lit) * vec3(0.018, 0.019, 0.022);
+        float bright = 0.45 + 0.8 * ih(n0 + 9973.0);
+        col += win * (1.0 - lit) * vec3(0.018, 0.019, 0.022) * detail;
         vec3 winCol = win * lit * wc * bright;
-        float far = smoothstep(160.0, 560.0, d);
-        col += mix(winCol, vec3(0.5,0.36,0.22) * D.y * 0.25, far);
+        col += mix(vec3(0.95, 0.62, 0.3) * D.y * 0.3, winCol, detail);
       } else {
         col = base * 0.8;
       }
@@ -1367,7 +1452,7 @@ class Pickups {
       p.g.position.set(it.x, it.y + Math.sin(now / 500 + it.x) * 0.8, it.z); p.g.rotation.y = now / 700; p.ring.rotation.x = Math.PI / 2 + Math.sin(now / 900) * 0.3;
       if (player.hull < 100 && player.pos.distanceTo(p.g.position) < 7.5) {
         player.hull = Math.min(100, player.hull + 40); this.taken.set(it.key, now + 60000);
-        toast('HULL REPAIRED +40', 'cyan'); Snd.chime();
+        toast('HULL REPAIRED +40', 'cyan'); Snd.chime(); rumble(0, 0.4, 160);
         p.item = null; p.g.visible = false; this.items = this.items.filter(x => x !== it);
       }
     }
@@ -1632,7 +1717,7 @@ const touchState = { steer: 0, lift: 0, lever: 0, fire: false };
 const input = { throttle: 0, steer: 0, lift: 0, boost: false, fire: false, look: false };
 const NO_INPUT = { throttle: 0, steer: 0, lift: 0, boost: false, fire: false };
 let mouseFire = false, prevFire = false;
-const pad = { prev: [], boostLatch: false, lastNav: 0 };
+const pad = { prev: [], boostLatch: false, lastNav: 0, rumbleUntil: 0, rumbleLevel: 0, boostT: 0 };
 let inputMode = matchMedia('(pointer:coarse)').matches ? 'touch' : 'kbd';
 function setInputMode(m) {
   if (m === inputMode) return;
@@ -1640,17 +1725,32 @@ function setInputMode(m) {
   if (game.state === 'play') $('#touch').hidden = m !== 'touch';
 }
 addEventListener('pointerdown', e => setInputMode(e.pointerType === 'touch' ? 'touch' : 'kbd'), true);
-function padMenu(pressed, ly) {
-  const scr = ['#pause', '#over', '#mp', '#menu'].map(q => $(q)).find(e => !e.hidden); if (!scr) return;
-  const btns = [...scr.querySelectorAll('button')].filter(b => b.offsetParent !== null);
-  if (!btns.length) return;
-  let i = btns.indexOf(document.activeElement), dir = 0;
+function rumble(strong, weak, ms, force) {
+  if (!settings.vibration || (!force && inputMode !== 'pad')) return;
   const now = performance.now();
-  if (pressed(13) || pressed(15)) dir = 1; else if (pressed(12) || pressed(14)) dir = -1;
-  else if (Math.abs(ly) > 0.6 && now - pad.lastNav > 260) dir = Math.sign(ly);
-  if (dir) { pad.lastNav = now; i = i < 0 ? 0 : (i + dir + btns.length) % btns.length; btns[i].focus(); }
-  if (pressed(0)) { if (i < 0) btns[0].focus(); else btns[i].click(); }
-  if (pressed(1) && (game.state === 'paused' || game.menuOpen)) resume();
+  if (!force && now < pad.rumbleUntil - 40 && Math.max(strong, weak) <= pad.rumbleLevel) return;
+  const gps = navigator.getGamepads ? navigator.getGamepads() : [];
+  for (const gp of gps) {
+    if (!gp) continue;
+    try {
+      const va = gp.vibrationActuator;
+      if (va && va.playEffect) { const p = va.playEffect('dual-rumble', { startDelay: 0, duration: ms, strongMagnitude: clamp(strong, 0, 1), weakMagnitude: clamp(weak, 0, 1) }); if (p && p.catch) p.catch(() => {}); }
+      else if (gp.hapticActuators && gp.hapticActuators[0]) gp.hapticActuators[0].pulse(clamp(Math.max(strong, weak), 0, 1), ms);
+    } catch (_) {}
+    break;
+  }
+  pad.rumbleUntil = now + ms; pad.rumbleLevel = Math.max(strong, weak);
+}
+function padMenu(pressed, lx, ly) {
+  // D-pad or left stick moves to the nearest button in that direction; A selects; B goes back
+  const now = performance.now();
+  let dx = 0, dy = 0;
+  if (pressed(12)) dy = -1; else if (pressed(13)) dy = 1; else if (pressed(14)) dx = -1; else if (pressed(15)) dx = 1;
+  else if (Math.max(Math.abs(lx), Math.abs(ly)) > 0.6 && now - pad.lastNav > 230) { if (Math.abs(ly) >= Math.abs(lx)) dy = Math.sign(ly); else dx = Math.sign(lx); }
+  if (Math.max(Math.abs(lx), Math.abs(ly)) < 0.3) pad.lastNav = 0;
+  if (dx || dy) { pad.lastNav = now; navMove(dx, dy); }
+  if (pressed(0)) { const scr = activeScreen(), cur = document.activeElement; if (scr && cur && scr.contains(cur) && cur !== document.body) cur.click(); else if (scr) { const f = focusables(scr)[0]; if (f) f.focus(); } }
+  if (pressed(1)) { if (!uiBack() && (game.state === 'paused' || game.menuOpen)) resume(); }
 }
 // mouse flying: click captures the mouse, movement steers and climbs, left click fires, right click boosts
 const mouse = { x: 0, y: 0, locked: false, failed: false, boost: false, wantExit: false, lostAt: -1e9, t: 0 };
@@ -1686,6 +1786,12 @@ addEventListener('keydown', e => {
   if (e.target && e.target.tagName === 'INPUT') return;
   setInputMode('kbd');
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
+  const inMenus = game.state !== 'play' || game.menuOpen;
+  if (inMenus && !e.repeat) {
+    const dir = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[e.code];
+    if (dir) { navMove(dir[0], dir[1]); return; }
+    if (e.code === 'Escape' && uiBack()) return;
+  }
   keys.add(e.code);
   if (e.repeat) return;
   if (game.state === 'menu' && !$('#menu').hidden) { if (e.code === 'Digit1') startRun('getaway'); if (e.code === 'Digit2') startRun('cruise'); if (e.code === 'Digit3') openMp(); }
@@ -1721,7 +1827,7 @@ function pollInput() {
     }
   }
   if (touchState.lever !== 0) { thr = clamp(thr + Math.min(1, touchState.lever), -1, 1); if (touchState.lever > 1.02) boost = true; }
-  // gamepad: left stick throttle, right stick steer + climb, R1 missiles, L3 (or L1) boost, B look back, Start menu
+  // gamepad: left stick steer + climb, right stick throttle, R1 missiles, R3 (or L1) boost, B look back, Start menu
   const pads = navigator.getGamepads ? navigator.getGamepads() : [];
   let look = k('KeyB');
   for (const gp of pads) {
@@ -1733,16 +1839,16 @@ function pollInput() {
     if (Math.abs(lx) > 0.3 || Math.abs(ly) > 0.3 || Math.abs(rx) > 0.3 || Math.abs(ry) > 0.3 || gp.buttons.some(b => b.pressed)) setInputMode('pad');
     const inMenu = game.state !== 'play' || game.menuOpen;
     if (!inMenu) {
-      if (ly) thr = clamp(-ly, -1, 1);
+      if (lx) steer = clamp(steer + lx, -1, 1);
+      if (ly) lift = clamp(-ly * inv, -1, 1);
+      if (ry) thr = clamp(-ry, -1, 1);
       const rt = val(7), lt = val(6); if (rt > 0.05 || lt > 0.05) thr = rt - lt;
-      if (rx) steer = clamp(steer + rx, -1, 1);
-      if (ry) lift = clamp(-ry * inv, -1, 1);
-      if (pressed(10)) pad.boostLatch = !pad.boostLatch;
+      if (pressed(11)) pad.boostLatch = !pad.boostLatch;
       if (pad.boostLatch && (thr < 0.1 || player.boostE < 0.03)) pad.boostLatch = false;
       if (pad.boostLatch || btn(4)) boost = true;
       if (btn(5)) fire = true;
       if (btn(1)) look = true;
-    } else padMenu(pressed, ly);
+    } else padMenu(pressed, lx, ly);
     if (pressed(9)) { if (game.state === 'play' && !game.menuOpen) pause(); else if (game.state === 'paused' || game.menuOpen) resume(); }
     pad.prev = gp.buttons.map(b => b.pressed);
     break;
@@ -1892,6 +1998,7 @@ function explode(p, s = 1) {
   const d = camera.position.distanceTo(p);
   game.shake = Math.min(1.5, game.shake + clamp(1 - d / 220, 0, 1) * 0.9 * s);
   Snd.boom(d, s, panOf(p));
+  { const k = clamp(1 - d / 260, 0, 1) * Math.min(1.2, s); if (k > 0.05) rumble(k * 0.8, k * 0.6, 180 + k * 260); }
 }
 function updateFlashes(dt) {
   for (const f of flashes) {
@@ -1947,7 +2054,7 @@ function launchMissile(target) {
   m.vel.copy(player.vel); m.vel.x += Math.cos(player.yaw) * sgn * 5; m.vel.z += -Math.sin(player.yaw) * sgn * 5; m.vel.y -= 5;
   m.mesh.visible = true; m.glow.visible = false;
   if (target) target.inbound = (target.inbound || 0) + 1;
-  Snd.launch(); game.shake = Math.min(1.5, game.shake + 0.12); game.fovKick = 3;
+  Snd.launch(); game.shake = Math.min(1.5, game.shake + 0.12); game.fovKick = 3; rumble(0.15, 0.55, 120);
   if (game.mode === 'mp') netSend({ type: 'fire', mid: m.mid, tg: target ? target.id : null,
     p: [r2(m.pos.x), r2(m.pos.y), r2(m.pos.z)], v: [r2(m.vel.x), r2(m.vel.y), r2(m.vel.z)], d: [r2(m.dir.x), r2(m.dir.y), r2(m.dir.z)] });
 }
@@ -2040,7 +2147,7 @@ function updateLocks(dt) {
     if (!canLock(c)) continue;
     const was = c.lock || 0;
     c.lock = allowed.includes(c) ? Math.min(1, was + dt / LOCK_TIME) : Math.max(0, was - dt * 2.5);
-    if (was < 1 && c.lock >= 1) Snd.blip(1600, 0.1);
+    if (was < 1 && c.lock >= 1) { Snd.blip(1600, 0.1); rumble(0, 0.3, 60); }
   }
 }
 
@@ -2060,7 +2167,51 @@ function setModeClass(mode) {
   document.body.classList.toggle('mode-cruise', mode === 'cruise');
   document.body.classList.toggle('mode-mp', mode === 'mp');
 }
-function showOnly(id) { ['#menu', '#mp', '#pause', '#over'].forEach(s => { $(s).hidden = s !== id; }); }
+function showOnly(id) { ['#menu', '#pause', '#over'].forEach(s => { $(s).hidden = s !== id; }); if (id === '#menu') closePanels($('#menu')); }
+const activeScreen = () => ['#over', '#pause', '#menu'].map(q => $(q)).find(e => !e.hidden) || null;
+function closePanels(scr) { if (!scr) return; scr.querySelectorAll('.mpanel.open').forEach(p => p.classList.remove('open')); scr.querySelectorAll('.mbtn.active').forEach(b => b.classList.remove('active')); }
+function openPanel(id, focusFirst) {
+  const scr = activeScreen(); if (!scr) return;
+  const host = scr.querySelector('.mpanels'); if (!host) return;
+  const el = $('#' + id);
+  if (el.parentElement !== host) host.appendChild(el);   // settings and controls are shared by the main and pause menus
+  host.querySelectorAll('.mpanel').forEach(p => p.classList.toggle('open', p === el));
+  const owner = id === 'pControls' ? 'pSettings' : id;
+  scr.querySelectorAll('.mbtn').forEach(b => b.classList.toggle('active', b.dataset.panel === owner));
+  if (id === 'mp') { NET.lobbyKey = null; mpRenderLobby(); }
+  if (focusFirst) { const f = focusables(el)[0]; if (f) f.focus(); }
+}
+function showMenuPanel(id) { showOnly('#menu'); openPanel(id, inputMode === 'pad'); }
+function focusables(root) {
+  return [...root.querySelectorAll('button, input')].filter(el => !el.disabled && el.offsetParent !== null && !el.closest('.mpanel:not(.open)'));
+}
+function navMove(dx, dy) {
+  const scr = activeScreen(); if (!scr) return;
+  const list = focusables(scr); if (!list.length) return;
+  const cur = document.activeElement;
+  if (!list.includes(cur)) { list[0].focus(); return; }
+  const r = cur.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+  let best = null, bs = 1e9;
+  for (const el of list) {
+    if (el === cur) continue;
+    const q = el.getBoundingClientRect(), ex = q.left + q.width / 2 - cx, ey = q.top + q.height / 2 - cy;
+    const along = ex * dx + ey * dy; if (along <= 4) continue;
+    const score = along + Math.abs(ex * dy - ey * dx) * 2.5;
+    if (score < bs) { bs = score; best = el; }
+  }
+  if (!best) return;
+  best.focus();
+  if (best.classList.contains('mbtn') && best.dataset.panel && best.closest('.mside')) openPanel(best.dataset.panel, false);
+}
+function uiBack() {
+  const scr = activeScreen(); if (!scr) return false;
+  const open = scr.querySelector('.mpanel.open'); if (!open) return false;
+  if (open.id === 'pControls') { openPanel('pSettings', true); return true; }
+  const owner = scr.querySelector('.mbtn[data-panel="' + open.id + '"]');
+  if (owner && open.contains(document.activeElement)) { owner.focus(); return true; }
+  closePanels(scr); if (owner) owner.focus();
+  return true;
+}
 function tryFullscreenOnTouch() {
   if (!isTouch || isFS() || !fsOk) return;
   try { const p = fsReq.call(fsRoot); if (p && p.then) p.then(lockLandscape).catch(() => {}); } catch (e) {}
@@ -2123,7 +2274,8 @@ function pause() {
   $('#pauseTitle').textContent = isMp ? 'MENU' : 'PAUSED';
   $('#restart').hidden = isMp; $('#quit').textContent = isMp ? 'Leave match' : 'Main menu';
   if (isMp) game.menuOpen = true; else game.state = 'paused';
-  $('#pause').hidden = false;
+  $('#pause').hidden = false; closePanels($('#pause'));
+  if (inputMode === 'pad') $('#resume').focus();
 }
 function resume() {
   if (game.mode === 'mp') { game.menuOpen = false; $('#pause').hidden = true; if (inputMode === 'kbd') captureMouse(false); return; }
@@ -2244,7 +2396,7 @@ function fireCopMissile(c) {
 }
 function copMissileHit(m) {
   explode(m.pos, 1.1);
-  player.hull -= 38; game.shake = Math.min(1.5, game.shake + 0.8); hurtFlash();
+  player.hull -= 38; game.shake = Math.min(1.5, game.shake + 0.8); hurtFlash(); rumble(1, 1, 520);
   player.vel.addScaledVector(m.dir, 16);
   if (player.hull <= 0) { player.hull = 0; gameOver('SHOT DOWN'); }
 }
@@ -2263,7 +2415,7 @@ function simStep(dt) {
   const getaway = game.mode === 'getaway';
   const impact = player.step(input, dt, world);
   if (impact > 10) {
-    game.shake = Math.min(1.2, game.shake + impact / 50); Snd.hit(impact);
+    game.shake = Math.min(1.2, game.shake + impact / 50); Snd.hit(impact); rumble(clamp(impact / 45, 0.2, 1), 0.35, 140 + impact * 4);
     if (getaway && impact > 12) {
       player.hull -= (impact - 8) * 1.05;
       if (player.hull <= 0) { player.hull = 0; gameOver('WRECKED'); return; }
@@ -2596,11 +2748,11 @@ function mpNotify(s) { if (game.state === 'menu') mpMsg(s, true); else toast(s, 
 function mpLeave(message, err) {
   mpCleanup();
   game.state = 'menu'; game.mode = null; setModeClass(null);
-  hideWorldActors(); showOnly('#mp'); NET.lobbyKey = null; mpRenderLobby();
+  hideWorldActors(); showMenuPanel('mp');
   mpMsg(message || 'Left the match. Create a new one or join with a code.', err);
 }
 function openMp() {
-  Snd.init(); showOnly('#mp'); NET.lobbyKey = null; mpRenderLobby();
+  Snd.init(); showMenuPanel('mp');
   if (!NET.connected) mpMsg('One device creates the match. Everyone else types its 3-digit code. Keep all devices on the same Wi-Fi or hotspot.');
 }
 
@@ -2609,7 +2761,7 @@ function setPhase(ph) {
   const prev = NET.phase; NET.phase = ph;
   if (ph === 'lobby') {
     game.state = 'menu'; game.mode = null; setModeClass(null);
-    hideWorldActors(); showOnly('#mp'); NET.lobbyKey = null;
+    hideWorldActors(); showMenuPanel('mp');
     mpMsg(NET.isHost ? 'Pick a mode and start when everyone is in.' : 'Connected. Waiting for the host to start.');
   } else if (ph === 'countdown') {
     mpRoundStart();
@@ -2669,7 +2821,7 @@ function mpShowResults() {
 /* my own pilot in a dogfight */
 function meHit(m) {
   explode(m.pos, 1.1);
-  player.hull -= MISSILE_DMG; mp.lastDmg = 0; game.shake = Math.min(1.5, game.shake + 0.7); hurtFlash();
+  player.hull -= MISSILE_DMG; mp.lastDmg = 0; game.shake = Math.min(1.5, game.shake + 0.7); hurtFlash(); rumble(1, 1, 520);
   player.vel.addScaledVector(m.dir, 14);
   netSend({ type: 'hit', mid: m.mid, s: m.ownerId, p: [r2(m.pos.x), r2(m.pos.y), r2(m.pos.z)] });
   if (player.hull <= 0) mpDie(m.ownerId);
@@ -2692,7 +2844,7 @@ function mpStep(dt) {
   if (mp.alive) {
     const impact = player.step(game.menuOpen ? NO_INPUT : input, dt, world);
     if (impact > 10) {
-      game.shake = Math.min(1.2, game.shake + impact / 50); Snd.hit(impact);
+      game.shake = Math.min(1.2, game.shake + impact / 50); Snd.hit(impact); rumble(clamp(impact / 45, 0.2, 1), 0.35, 140 + impact * 4);
       if (impact > 12 && mp.protect <= 0) { player.hull -= (impact - 8) * 1.05; mp.lastDmg = 0; }
     }
     mp.protect = Math.max(0, mp.protect - dt);
@@ -3010,7 +3162,7 @@ function frame(now) {
   }
   prevFire = input.fire;
   netTick(now, rdt);
-  if (game.state === 'menu' && !$('#mp').hidden) mpRenderLobby();
+  if (game.state === 'menu' && $('#mp').classList.contains('open') && !$('#menu').hidden) mpRenderLobby();
   if (game.state !== 'paused') { smoke.update(dt); fire.update(dt); updateFlashes(dt); }
   pScale.value = renderer.domElement.height / (2 * Math.tan(camera.fov * Math.PI / 360));
   const focus = game.state === 'menu' ? camPos : player.pos;
@@ -3045,7 +3197,9 @@ function frame(now) {
   if (!anyLocked && maxL > 0.02) { game.beepT -= rdt; if (game.beepT <= 0) { Snd.blip(600 + maxL * 700); game.beepT = lerp(0.22, 0.06, maxL); } }
   const incoming = playing && missiles.some(m => m.active && !m.own && m.target === player);
   const aiming = playing && game.mode === 'getaway' && cops.some(c => c.active && !c.wrecked && c.aimT > 0);
-  if (incoming || aiming) { game.warnT -= rdt; if (game.warnT <= 0) { Snd.blip(incoming ? 2100 : 1050, incoming ? 0.05 : 0.12); game.warnT = incoming ? 0.11 : 0.3; } }
+  if (incoming || aiming) { game.warnT -= rdt; if (game.warnT <= 0) { Snd.blip(incoming ? 2100 : 1050, incoming ? 0.05 : 0.12); if (incoming) rumble(0, 0.28, 50); game.warnT = incoming ? 0.11 : 0.3; } }
+  pad.boostT -= rdt;
+  if (playing && player.boosting && pad.boostT <= 0) { rumble(0.06, 0.2, 200); pad.boostT = 0.18; }
   let siren = 0;
   if (game.mode === 'getaway' && playing) for (const c of cops) if (c.active && !c.wrecked) siren = Math.max(siren, clamp(1 - c.pos.distanceTo(player.pos) / 260, 0, 1));
   const engine = playing && (game.mode !== 'mp' || mp.alive);
@@ -3061,14 +3215,11 @@ function renderBest() {
 function applySettingsUI() {
   $('#qBtn').innerHTML = 'Graphics <b>' + (settings.quality === 'high' ? 'High' : 'Low') + '</b>';
   $('#sBtn').innerHTML = 'Sound <b>' + (settings.sound ? 'On' : 'Off') + '</b>';
-  $('#sBtn2').textContent = settings.sound ? 'Sound off' : 'Sound on';
+  $('#vibBtn').innerHTML = 'Controller vibration <b>' + (settings.vibration ? 'On' : 'Off') + '</b>';
   $('#invBtn').innerHTML = 'Invert flight controls <b>' + (settings.invertY ? 'On' : 'Off') + '</b>';
-  $('#invBtn2').textContent = 'Invert flight controls: ' + (settings.invertY ? 'On' : 'Off');
   const sensName = settings.mouseSens < 0.8 ? 'Low' : settings.mouseSens > 1.3 ? 'High' : 'Medium';
   $('#mouseBtn').innerHTML = 'Mouse flying <b>' + (settings.mouseFly ? 'On' : 'Off') + '</b>';
   $('#sensBtn').innerHTML = 'Mouse speed <b>' + sensName + '</b>';
-  $('#mouseBtn2').textContent = 'Mouse flying: ' + (settings.mouseFly ? 'On' : 'Off');
-  $('#sensBtn2').textContent = 'Mouse speed: ' + sensName;
   traffic.setCount(settings.quality === 'high' ? traffic.n : Math.floor(traffic.n * 0.6));
   rain.mesh.geometry.setDrawRange(0, settings.quality === 'high' ? rain.n * 2 : rain.n);
 }
@@ -3076,7 +3227,6 @@ function toggleSound() { settings.sound = !settings.sound; store.set('sound', se
 $('#mGetaway').addEventListener('click', () => startRun('getaway'));
 $('#mCruise').addEventListener('click', () => startRun('cruise'));
 $('#mDogfight').addEventListener('click', openMp);
-$('#mpBack').addEventListener('click', () => { mpCleanup(); showOnly('#menu'); });
 $('#mpHost').addEventListener('click', mpHost);
 $('#mpJoin').addEventListener('click', () => mpJoin());
 $('#mpCode').addEventListener('input', e => {
@@ -3087,13 +3237,22 @@ $('#mpCode').addEventListener('input', e => {
 $('#mpCode').addEventListener('keydown', e => { if (e.key === 'Enter') mpJoin(); });
 $('#qBtn').addEventListener('click', () => { settings.quality = settings.quality === 'high' ? 'low' : 'high'; store.set('quality', settings.quality); applySettingsUI(); resize(); });
 $('#sBtn').addEventListener('click', toggleSound);
-$('#sBtn2').addEventListener('click', toggleSound);
+$('#vibBtn').addEventListener('click', () => { settings.vibration = !settings.vibration; store.set('vibration', settings.vibration); applySettingsUI(); if (settings.vibration) rumble(0.4, 0.6, 200, true); });
+$('#ctrlBtn').addEventListener('click', () => openPanel('pControls', inputMode === 'pad'));
+$('#ctrlBack').addEventListener('click', () => openPanel('pSettings', inputMode === 'pad'));
+document.querySelectorAll('.mbtn[data-panel]').forEach(b => b.addEventListener('click', () => openPanel(b.dataset.panel, inputMode === 'pad')));
+$('#exitBtn').addEventListener('click', () => {
+  releaseMouse();
+  try { if (isFS()) (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (_) {}
+  try { window.close(); } catch (_) {}
+  $('#exitMsg').textContent = 'You can close this browser tab now. Thanks for flying.';
+});
 const toggleInvert = () => { settings.invertY = !settings.invertY; store.set('invertY', settings.invertY); applySettingsUI(); };
-$('#invBtn').addEventListener('click', toggleInvert); $('#invBtn2').addEventListener('click', toggleInvert);
+$('#invBtn').addEventListener('click', toggleInvert);
 const toggleMouse = () => { settings.mouseFly = !settings.mouseFly; store.set('mouseFly', settings.mouseFly); mouse.failed = false; if (!settings.mouseFly) releaseMouse(); applySettingsUI(); };
 const cycleSens = () => { settings.mouseSens = settings.mouseSens < 0.8 ? 1 : settings.mouseSens < 1.3 ? 1.6 : 0.6; store.set('mouseSens', settings.mouseSens); applySettingsUI(); };
-$('#mouseBtn').addEventListener('click', toggleMouse); $('#mouseBtn2').addEventListener('click', toggleMouse);
-$('#sensBtn').addEventListener('click', cycleSens); $('#sensBtn2').addEventListener('click', cycleSens);
+$('#mouseBtn').addEventListener('click', toggleMouse);
+$('#sensBtn').addEventListener('click', cycleSens);
 if (matchMedia('(pointer:coarse)').matches) document.querySelectorAll('.mouse-opt').forEach(el => { el.hidden = true; });
 $('#pauseBtn').addEventListener('click', () => { if (game.state === 'play') pause(); });
 $('#resume').addEventListener('click', resume);
@@ -3101,9 +3260,8 @@ $('#restart').addEventListener('click', () => startRun(game.mode));
 $('#quit').addEventListener('click', () => { if (game.mode === 'mp') mpLeave(); else toMenu(); });
 $('#again').addEventListener('click', () => { if (game.mode === 'mp') { if (NET.isHost) startMatch(); } else startRun(game.mode); });
 $('#toMenu').addEventListener('click', () => { if (game.mode === 'mp') { if (NET.isHost) setPhase('lobby'); else mpLeave(); } else toMenu(); });
-if (isTouch) $('#keys').innerHTML = '<b>Left stick</b> steer, pull back to climb (Invert flight controls) · <b>Right lever</b> throttle, top = boost · <b>FIRE</b> missiles';
 {
-  const d = new Date(); $('#clock').textContent = `SECTOR 9 · ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} · RAIN 94% · AIRSPACE CEILING ${CEIL} M`;
+  const d = new Date(); $('#clock').textContent = `SECTOR 9 · ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')} · RAIN 94%`;
 }
 const letterboxEl = $('#letterbox');
 /* fullscreen */
@@ -3121,9 +3279,8 @@ function toggleFullscreen() {
 function syncFS() {
   const on = isFS();
   $('#fsChip').innerHTML = 'Fullscreen <b>' + (on ? 'On' : 'Off') + '</b>';
-  $('#fsBtn2').textContent = on ? 'Exit fullscreen' : 'Fullscreen';
 }
-['#fsChip', '#fsBtn2'].forEach(s => { const el = $(s); if (!fsOk) el.hidden = true; el.addEventListener('click', toggleFullscreen); });
+['#fsChip'].forEach(s => { const el = $(s); if (!fsOk) el.hidden = true; el.addEventListener('click', toggleFullscreen); });
 document.addEventListener('fullscreenchange', () => { syncFS(); resize(); });
 document.addEventListener('webkitfullscreenchange', () => { syncFS(); resize(); });
 syncFS();
