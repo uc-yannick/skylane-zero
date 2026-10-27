@@ -3226,7 +3226,6 @@ function applySettingsUI() {
 function toggleSound() { settings.sound = !settings.sound; store.set('sound', settings.sound); Snd.setMuted(!settings.sound); applySettingsUI(); }
 $('#mGetaway').addEventListener('click', () => startRun('getaway'));
 $('#mCruise').addEventListener('click', () => startRun('cruise'));
-$('#mDogfight').addEventListener('click', openMp);
 $('#mpHost').addEventListener('click', mpHost);
 $('#mpJoin').addEventListener('click', () => mpJoin());
 $('#mpCode').addEventListener('input', e => {
