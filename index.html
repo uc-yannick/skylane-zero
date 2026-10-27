@@ -299,12 +299,14 @@ body.input-pad .mode:focus,body.input-pad .btn:focus,body.input-pad input:focus{
           <button class="opt" id="qBtn">Graphics <b>High</b></button>
           <button class="opt" id="sBtn">Sound <b>On</b></button>
           <button class="opt" id="fsChip">Fullscreen <b>Off</b></button>
+          <button class="opt" id="autoFsBtn">Start in fullscreen <b>On</b></button>
           <button class="opt" id="invBtn">Invert flight controls <b>On</b></button>
           <button class="opt" id="vibBtn">Controller vibration <b>On</b></button>
           <button class="opt mouse-opt" id="mouseBtn">Mouse flying <b>On</b></button>
           <button class="opt mouse-opt" id="sensBtn">Mouse speed <b>Medium</b></button>
           <button class="opt" id="ctrlBtn">Controls <b>View</b></button>
         </div>
+        <div class="muted" id="vibMsg" aria-live="polite"></div>
       </div>
       <div class="mpanel" id="pControls">
         <div class="ptitle">Controls</div>
@@ -440,7 +442,7 @@ const hemi = new THREE.HemisphereLight(0x8a8690, 0x3a2a1c, 0.9); scene.add(hemi)
 const sun = new THREE.DirectionalLight(0xffc890, 0.55); sun.position.set(-0.4, 1, 0.3); scene.add(sun);
 const fillL = new THREE.DirectionalLight(0x9fb4c8, 0.25); fillL.position.set(0.5, 0.2, -1); scene.add(fillL);
 
-const settings = { quality: store.get('quality', isTouch ? 'low' : 'high'), sound: store.get('sound', true), invertY: store.get('invertY', true), mouseFly: store.get('mouseFly', true), mouseSens: store.get('mouseSens', 1), vibration: store.get('vibration', true) };
+const settings = { quality: store.get('quality', isTouch ? 'low' : 'high'), sound: store.get('sound', true), invertY: store.get('invertY', true), mouseFly: store.get('mouseFly', true), mouseSens: store.get('mouseSens', 1), vibration: store.get('vibration', true), autoFS: store.get('autoFS', true) };
 let composer = null;
 try {
   if (THREE.EffectComposer && THREE.UnrealBloomPass) {
@@ -461,18 +463,18 @@ const FOG_GLSL = `uniform vec3 uFog; uniform float uDen;
 const buildingMat = new THREE.ShaderMaterial({
   uniforms: fogUniforms, extensions: { derivatives: true },
   vertexShader: `
-    attribute vec4 aData; varying vec3 vW; varying vec3 vN; varying vec4 vD; varying vec2 vC;
+    attribute vec4 aData; varying vec3 vW; varying vec3 vN; varying vec4 vD; varying vec2 vC; varying float vR;
     void main(){
       vec4 w = modelMatrix * instanceMatrix * vec4(position,1.0); vW = w.xyz; vC = instanceMatrix[3].xz;
       vec3 sc = vec3(length(instanceMatrix[0].xyz), length(instanceMatrix[1].xyz), length(instanceMatrix[2].xyz));
-      vN = normalize(normal / sc); vD = aData;
+      vN = normalize(normal / sc); vD = aData; vR = sc.x * 0.5;
       gl_Position = projectionMatrix * viewMatrix * w; }`,
   fragmentShader: `
     ${FOG_GLSL}
-    varying vec3 vW; varying vec3 vN; varying vec4 vD; varying vec2 vC;
+    varying vec3 vW; varying vec3 vN; varying vec4 vD; varying vec2 vC; varying float vR;
     // exact whole-number hash: every step stays below 2^24, so all GPUs get bit-identical results
     float modx(float x, float m){ float q = floor(x / m); float r = x - q * m; if (r < 0.0) r += m; if (r >= m) r -= m; return r; }
-    float ih(float n){ n = modx(n, 65521.0); n = modx(n * 223.0 + 71.0, 65521.0); n = modx(n * 211.0 + 13.0, 65521.0); n = modx(n * 197.0 + 101.0, 65521.0); return n / 65521.0; }
+    float perm(float x){ return modx((34.0 * x + 1.0) * x, 289.0); }   // exact: stays below 2^24
     void main(){
       float d = distance(vW, cameraPosition);
       vec3 dW = fwidth(vW);   // pixel footprint in metres, taken outside any branch
@@ -486,7 +488,7 @@ const buildingMat = new THREE.ShaderMaterial({
         float u;
         if (vD.w > 0.5) {
           // round towers: a whole number of window columns per lap, so there is no seam
-          vec2 o = vW.xz - vC; float cols = max(4.0, floor(6.2832 * length(o) / ww + 0.5));
+          vec2 o = vW.xz - vC; float R = floor(vR * 10.0 + 0.5) / 10.0; float cols = max(4.0, floor(6.2832 * R / ww + 0.5));
           u = (atan(o.y, o.x) / 6.2832) * cols * ww;
         } else { vec2 tn = normalize(vec2(-vN.z, vN.x) + 1e-5); u = dot(vW.xz, tn); }
         float fh = mix(3.2, 4.2, fract(D.z * 7.31));
@@ -498,12 +500,12 @@ const buildingMat = new THREE.ShaderMaterial({
         float detail = (1.0 - smoothstep(0.2, 0.5, max(fw.x, fw.y))) * (1.0 - smoothstep(260.0, 620.0, d));
         float side = vD.w > 0.5 ? 0.0 : dot(floor(vN.xz * 1.5 + 0.5), vec2(3.0, 7.0));
         float seed = floor(vD.x * 1000.0 + 0.5);
-        float n0 = modx(cell.x, 1024.0) + modx(cell.y, 512.0) * 1031.0 + seed * 7919.0 + side * 104729.0;
-        float r = ih(n0);
+        float h0 = perm(modx(perm(modx(perm(modx(perm(modx(cell.x, 289.0)) + cell.y, 289.0)) + modx(seed, 289.0), 289.0)) + side + 7.0, 289.0));
+        float r = h0 / 289.0;
         float lit = step(1.0 - D.y, r);
-        float pick = ih(n0 + 5003.0);
+        float pick = perm(modx(h0 + 101.0, 289.0)) / 289.0;
         vec3 wc = pick < 0.8 ? vec3(1.0,0.68,0.34) : (pick < 0.95 ? vec3(0.72,0.42,0.17) : vec3(0.62,0.65,0.68));
-        float bright = 0.45 + 0.8 * ih(n0 + 9973.0);
+        float bright = 0.45 + 0.8 * perm(modx(h0 + 53.0, 289.0)) / 289.0;
         col += win * (1.0 - lit) * vec3(0.018, 0.019, 0.022) * detail;
         vec3 winCol = win * lit * wc * bright;
         col += mix(vec3(0.95, 0.62, 0.3) * D.y * 0.3, winCol, detail);
@@ -577,7 +579,7 @@ SHAPES.forEach(s => { s.base = s.geo(); s.base.translate(0, 0.5, 0); if (s.flat)
 const snap3 = v => Math.round(v * 1000) / 1000;
 const scaleAt = (b, y) => b.tp === 1 ? 1 : 1 + (b.tp - 1) * clamp((y - b.y0) / (b.y1 - b.y0), 0, 1);
 const mkBox = (x0, x1, z0, z1, y0, y1, s, l, t) => ({ ty: T_BOX, x0, x1, z0, z1, y0, y1, cx: (x0 + x1) / 2, cz: (z0 + z1) / 2, hx: (x1 - x0) / 2, hz: (z1 - z0) / 2, rd: 0, tp: 1, s, l, t });
-const mkShape = (ty, cx, cz, r, y0, y1, s, l, t) => ({ ty, x0: cx - r, x1: cx + r, z0: cz - r, z1: cz + r, y0, y1, cx, cz, hx: r, hz: r, rd: SHAPES[ty].round, tp: SHAPES[ty].taper, s, l, t });
+const mkShape = (ty, cx, cz, r, y0, y1, s, l, t) => (r = Math.round(r * 10) / 10, { ty, x0: cx - r, x1: cx + r, z0: cz - r, z1: cz + r, y0, y1, cx, cz, hx: r, hz: r, rd: SHAPES[ty].round, tp: SHAPES[ty].taper, s, l, t });
 
 class World {
   constructor(scene, seed) { this.scene = scene; this.seed = seed; this.data = new Map(); this.meshes = new Map(); }
@@ -1399,21 +1401,48 @@ class Airships {
       for (const z of [69, -69]) { const l = new THREE.Mesh(lightG, this.blink); l.position.set(0, 4, z); g.add(l); }
       const cone = new THREE.Mesh(coneG, coneMat); cone.position.set(0, -22, 18); g.add(cone);
       scene.add(g);
-      this.list.push({ g, cone, speed: 7 + Math.random() * 4, placed: false, i });
+      this.list.push({ g, cone, speed: 7 + Math.random() * 4, placed: false, i, baseY: 280, wantY: 280, turn: 0, scanT: 0 });
     }
   }
+  clearance(x, z, yaw, ahead) {
+    // tallest building under the hull (and along the path ahead), sampled across its width
+    let h = 0; const fx = Math.sin(yaw), fz = Math.cos(yaw);
+    for (let d = -75; d <= 75 + ahead; d += 25) for (const w of [-22, 0, 22]) h = Math.max(h, world.heightAt(x + fx * d + fz * w, z + fz * d - fx * w));
+    return h;
+  }
   place(s, focus, init) {
-    const ang = Math.random() * TAU, d = init ? 150 + Math.random() * 450 : 750;
-    const x = focus.x + Math.sin(ang) * d, z = focus.z + Math.cos(ang) * d;
-    const tx = focus.x + (Math.random() - 0.5) * 500, tz = focus.z + (Math.random() - 0.5) * 500;
-    s.g.position.set(x, 255 + Math.random() * 70, z); s.g.rotation.y = Math.atan2(tx - x, tz - z); s.placed = true;
+    for (let k = 0; k < 12; k++) {
+      const ang = Math.random() * TAU, d = init ? 150 + Math.random() * 450 : 750;
+      const x = focus.x + Math.sin(ang) * d, z = focus.z + Math.cos(ang) * d;
+      const tx = focus.x + (Math.random() - 0.5) * 500, tz = focus.z + (Math.random() - 0.5) * 500;
+      const yaw = Math.atan2(tx - x, tz - z), base = 255 + Math.random() * 70;
+      const h = this.clearance(x, z, yaw, 0);
+      if (h > base - 45 && k < 11) continue;
+      s.baseY = base; s.wantY = Math.max(base, h + 45);
+      s.g.position.set(x, s.wantY, z); s.g.rotation.y = yaw; s.turn = 0; s.placed = true;
+      return;
+    }
   }
   update(dt, focus, t) {
     this.blink.color.setRGB(Math.floor(t * 1.2) % 2 ? 2 : 0.1, 0.12, 0.08);
     for (const s of this.list) {
       if (!s.placed) this.place(s, focus, true);
-      const y = s.g.rotation.y; s.g.position.x += Math.sin(y) * s.speed * dt; s.g.position.z += Math.cos(y) * s.speed * dt;
-      if (Math.hypot(s.g.position.x - focus.x, s.g.position.z - focus.z) > 1000) this.place(s, focus, false);
+      const P = s.g.position;
+      s.scanT -= dt;
+      if (s.scanT <= 0) {
+        s.scanT = 0.5;
+        const yaw = s.g.rotation.y, ahead = this.clearance(P.x, P.z, yaw, 260);
+        if (ahead > P.y + 120) {
+          // too tall to climb over in time: turn towards the lower side
+          const l = this.clearance(P.x, P.z, yaw + 0.6, 220), r = this.clearance(P.x, P.z, yaw - 0.6, 220);
+          s.turn = l <= r ? 0.09 : -0.09; s.wantY = Math.max(s.baseY, Math.min(l, r) + 45);
+        } else { s.turn *= 0.5; s.wantY = Math.max(s.baseY, ahead + 45); }
+        if (this.clearance(P.x, P.z, yaw, 0) > P.y - 18) { this.place(s, focus, false); continue; }   // stuck inside something: start over elsewhere
+      }
+      s.g.rotation.y += s.turn * dt;
+      const y = s.g.rotation.y; P.x += Math.sin(y) * s.speed * dt; P.z += Math.cos(y) * s.speed * dt;
+      P.y += clamp(s.wantY - P.y, -6 * dt, 9 * dt);
+      if (Math.hypot(P.x - focus.x, P.z - focus.z) > 1000) this.place(s, focus, false);
       s.cone.rotation.x = -0.3 + Math.sin(t * 0.27 + s.i * 2) * 0.3; s.cone.rotation.z = Math.sin(t * 0.19 + s.i) * 0.45;
     }
   }
@@ -1497,7 +1526,8 @@ class Traffic {
     for (let i = 0; i < n; i++) this.cars.push({});
     const Yax = new V3(0, 1, 0);
     this.q = { zp: new THREE.Quaternion(), zn: new THREE.Quaternion().setFromAxisAngle(Yax, Math.PI), xp: new THREE.Quaternion().setFromAxisAngle(Yax, Math.PI / 2), xn: new THREE.Quaternion().setFromAxisAngle(Yax, -Math.PI / 2) };
-    this.m = new THREE.Matrix4(); this.p = new V3(); this.init = false; this.nearP = new V3(); this.nearD = 1e9;
+    this.m = new THREE.Matrix4(); this.p = new V3(); this.init = false; this.nearP = new V3(); this.nearD = 1e9; this.nearI = -1;
+    this.qHit = new THREE.Quaternion(); this.eHit = new THREE.Euler();
   }
   setCount(k) { this.count = k; this.meshes.forEach(m => m.count = k); }
   respawn(i, px, pz, init) {
@@ -1507,7 +1537,7 @@ class Traffic {
     const along = c.axis ? pz : px, across = c.axis ? px : pz;
     c.lane = nearestStreet(across + (Math.random() - 0.5) * 2 * R) + c.dir * 4;
     c.s = init ? along + (Math.random() - 0.5) * 2 * R : along - c.dir * R * (0.75 + Math.random() * 0.25);
-    c.sc = Math.random() < 0.15 ? new V3(1.35, 1.5, 1.9) : new V3(1, 1, 1);
+    c.sc = Math.random() < 0.15 ? new V3(1.35, 1.5, 1.9) : new V3(1, 1, 1); c.hitT = 0; c.vy = 0; c.spin = 0;
     c.q = c.axis ? (c.dir > 0 ? this.q.zp : this.q.zn) : (c.dir > 0 ? this.q.xp : this.q.xn);
     this.body.setColorAt(i, this.tints[Math.random() * this.tints.length | 0]);
     this.dirty = true;
@@ -1517,11 +1547,18 @@ class Traffic {
     let best = 1e12;
     for (let i = 0; i < this.count; i++) {
       const c = this.cars[i]; c.s += c.dir * c.speed * dt;
+      if (c.hitT > 0) {   // knocked out of its lane: tumble down trailing smoke
+        c.hitT -= dt; c.vy -= 22 * dt; c.y += c.vy * dt; c.speed *= Math.exp(-0.8 * dt); c.spin += dt * 2.4;
+        if (Math.random() < 0.5) smoke.emit(this.p.x, this.p.y, this.p.z, 0, 2, 0, 1.2, 1.2, 5, 0.12, 0.11, 0.13, 0.6, 1, 1.5);
+        if (c.hitT <= 0 || c.y < 2) { if (c.y < 2) explode(this.p, 0.6); this.respawn(i, px, pz, false); }
+      }
       const along = c.axis ? pz : px, across = c.axis ? px : pz;
       if (Math.abs(c.s - along) > 600 || Math.abs(c.lane - across) > 620) this.respawn(i, px, pz, false);
       if (c.axis) this.p.set(c.lane, c.y, c.s); else this.p.set(c.s, c.y, c.lane);
-      const dd = (this.p.x - px) ** 2 + (this.p.y - py) ** 2 + (this.p.z - pz) ** 2; if (dd < best) { best = dd; this.nearP.copy(this.p); }
-      this.m.compose(this.p, c.q, c.sc);
+      const dd = (this.p.x - px) ** 2 + (this.p.y - py) ** 2 + (this.p.z - pz) ** 2; if (dd < best) { best = dd; this.nearP.copy(this.p); this.nearI = i; }
+      let q = c.q;
+      if (c.hitT > 0) { this.eHit.set(c.spin * 0.7, 0, c.spin); this.qHit.setFromEuler(this.eHit).premultiply(c.q); q = this.qHit; }
+      this.m.compose(this.p, q, c.sc);
       this.body.setMatrixAt(i, this.m); this.tail.setMatrixAt(i, this.m); this.head.setMatrixAt(i, this.m);
     }
     this.nearD = Math.sqrt(best);
@@ -1725,21 +1762,30 @@ function setInputMode(m) {
   if (game.state === 'play') $('#touch').hidden = m !== 'touch';
 }
 addEventListener('pointerdown', e => setInputMode(e.pointerType === 'touch' ? 'touch' : 'kbd'), true);
-function rumble(strong, weak, ms, force) {
-  if (!settings.vibration || (!force && inputMode !== 'pad')) return;
-  const now = performance.now();
-  if (!force && now < pad.rumbleUntil - 40 && Math.max(strong, weak) <= pad.rumbleLevel) return;
+function padActuator() {
   const gps = navigator.getGamepads ? navigator.getGamepads() : [];
   for (const gp of gps) {
     if (!gp) continue;
-    try {
-      const va = gp.vibrationActuator;
-      if (va && va.playEffect) { const p = va.playEffect('dual-rumble', { startDelay: 0, duration: ms, strongMagnitude: clamp(strong, 0, 1), weakMagnitude: clamp(weak, 0, 1) }); if (p && p.catch) p.catch(() => {}); }
-      else if (gp.hapticActuators && gp.hapticActuators[0]) gp.hapticActuators[0].pulse(clamp(Math.max(strong, weak), 0, 1), ms);
-    } catch (_) {}
-    break;
+    if (gp.vibrationActuator && gp.vibrationActuator.playEffect) return { gp, kind: 'effect', a: gp.vibrationActuator };
+    if (gp.hapticActuators && gp.hapticActuators[0] && gp.hapticActuators[0].pulse) return { gp, kind: 'pulse', a: gp.hapticActuators[0] };
+    return { gp, kind: 'none' };
   }
+  return null;
+}
+function rumble(strong, weak, ms, force) {
+  if (!settings.vibration || (!force && inputMode !== 'pad')) return false;
+  const now = performance.now();
+  if (!force && now < pad.rumbleUntil - 40 && Math.max(strong, weak) <= pad.rumbleLevel) return true;
+  const act = padActuator(); if (!act || act.kind === 'none') return false;
+  try {
+    if (act.kind === 'effect') {
+      const fx = act.a.effects && act.a.effects.length && !act.a.effects.includes('dual-rumble') ? act.a.effects[0] : 'dual-rumble';
+      const p = act.a.playEffect(fx, { startDelay: 0, duration: Math.min(5000, ms), strongMagnitude: clamp(strong, 0, 1), weakMagnitude: clamp(weak, 0, 1), leftTrigger: 0, rightTrigger: 0 });
+      if (p && p.catch) p.catch(() => {});
+    } else act.a.pulse(clamp(Math.max(strong, weak), 0, 1), ms);
+  } catch (_) { return false; }
   pad.rumbleUntil = now + ms; pad.rumbleLevel = Math.max(strong, weak);
+  return true;
 }
 function padMenu(pressed, lx, ly) {
   // D-pad or left stick moves to the nearest button in that direction; A selects; B goes back
@@ -2201,7 +2247,6 @@ function navMove(dx, dy) {
   }
   if (!best) return;
   best.focus();
-  if (best.classList.contains('mbtn') && best.dataset.panel && best.closest('.mside')) openPanel(best.dataset.panel, false);
 }
 function uiBack() {
   const scr = activeScreen(); if (!scr) return false;
@@ -2213,7 +2258,7 @@ function uiBack() {
   return true;
 }
 function tryFullscreenOnTouch() {
-  if (!isTouch || isFS() || !fsOk) return;
+  if ((!isTouch && !settings.autoFS) || isFS() || !fsOk) return;
   try { const p = fsReq.call(fsRoot); if (p && p.then) p.then(lockLandscape).catch(() => {}); } catch (e) {}
 }
 function lockLandscape() { try { screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {}); } catch (e) {} }
@@ -2411,9 +2456,29 @@ function combatTick(dt) {
   for (let i = game.queue.length - 1; i >= 0; i--) { const q = game.queue[i]; q.t -= dt; if (q.t <= 0) { game.queue.splice(i, 1); launchMissile(q.target); } }
   updateMissiles(dt);
 }
+// bump into civilian traffic: both cars bounce, the civilian is knocked out of its lane
+function trafficHit(v) {
+  const i = traffic.nearI; if (i < 0 || traffic.nearD > 7) return 0;
+  const c = traffic.cars[i];
+  const len = c.sc.z > 1.5 ? 4.2 : 2.3;   // half length along the lane
+  const cx = traffic.nearP.x, cy = traffic.nearP.y, cz = traffic.nearP.z;
+  const dx = v.pos.x - cx, dy = v.pos.y - cy, dz = v.pos.z - cz;
+  const la = c.axis ? dz : dx, lb = c.axis ? dx : dz;
+  const ex = clamp(la, -len, len), qa = la - ex;   // distance from the car's centre line
+  const dist = Math.hypot(qa, lb, dy), R = v.radius + 1.2;
+  if (dist >= R || dist < 1e-3) return 0;
+  const nA = qa / dist, nB = lb / dist, nY = dy / dist;
+  const nx = c.axis ? nB : nA, nz = c.axis ? nA : nB;
+  v.pos.x += nx * (R - dist); v.pos.y += nY * (R - dist); v.pos.z += nz * (R - dist);
+  const cvx = c.axis ? 0 : c.dir * c.speed, cvz = c.axis ? c.dir * c.speed : 0;
+  const rel = (v.vel.x - cvx) * nx + v.vel.y * nY + (v.vel.z - cvz) * nz;
+  if (rel < 0) { v.vel.x -= nx * rel * 1.3; v.vel.y -= nY * rel * 1.3; v.vel.z -= nz * rel * 1.3; }
+  if (c.hitT <= 0) { c.hitT = 6; c.vy = 4 - nY * 8; }
+  return Math.max(11, -rel);
+}
 function simStep(dt) {
   const getaway = game.mode === 'getaway';
-  const impact = player.step(input, dt, world);
+  const impact = Math.max(player.step(input, dt, world), trafficHit(player));
   if (impact > 10) {
     game.shake = Math.min(1.2, game.shake + impact / 50); Snd.hit(impact); rumble(clamp(impact / 45, 0.2, 1), 0.35, 140 + impact * 4);
     if (getaway && impact > 12) {
@@ -2842,7 +2907,7 @@ function mpRespawn() {
 function mpStep(dt) {
   if (NET.phase !== 'playing') return;
   if (mp.alive) {
-    const impact = player.step(game.menuOpen ? NO_INPUT : input, dt, world);
+    const impact = Math.max(player.step(game.menuOpen ? NO_INPUT : input, dt, world), trafficHit(player));
     if (impact > 10) {
       game.shake = Math.min(1.2, game.shake + impact / 50); Snd.hit(impact); rumble(clamp(impact / 45, 0.2, 1), 0.35, 140 + impact * 4);
       if (impact > 12 && mp.protect <= 0) { player.hull -= (impact - 8) * 1.05; mp.lastDmg = 0; }
@@ -3216,6 +3281,7 @@ function applySettingsUI() {
   $('#qBtn').innerHTML = 'Graphics <b>' + (settings.quality === 'high' ? 'High' : 'Low') + '</b>';
   $('#sBtn').innerHTML = 'Sound <b>' + (settings.sound ? 'On' : 'Off') + '</b>';
   $('#vibBtn').innerHTML = 'Controller vibration <b>' + (settings.vibration ? 'On' : 'Off') + '</b>';
+  $('#autoFsBtn').innerHTML = 'Start in fullscreen <b>' + (settings.autoFS ? 'On' : 'Off') + '</b>';
   $('#invBtn').innerHTML = 'Invert flight controls <b>' + (settings.invertY ? 'On' : 'Off') + '</b>';
   const sensName = settings.mouseSens < 0.8 ? 'Low' : settings.mouseSens > 1.3 ? 'High' : 'Medium';
   $('#mouseBtn').innerHTML = 'Mouse flying <b>' + (settings.mouseFly ? 'On' : 'Off') + '</b>';
@@ -3236,7 +3302,14 @@ $('#mpCode').addEventListener('input', e => {
 $('#mpCode').addEventListener('keydown', e => { if (e.key === 'Enter') mpJoin(); });
 $('#qBtn').addEventListener('click', () => { settings.quality = settings.quality === 'high' ? 'low' : 'high'; store.set('quality', settings.quality); applySettingsUI(); resize(); });
 $('#sBtn').addEventListener('click', toggleSound);
-$('#vibBtn').addEventListener('click', () => { settings.vibration = !settings.vibration; store.set('vibration', settings.vibration); applySettingsUI(); if (settings.vibration) rumble(0.4, 0.6, 200, true); });
+$('#vibBtn').addEventListener('click', () => {
+  settings.vibration = !settings.vibration; store.set('vibration', settings.vibration); applySettingsUI();
+  const act = padActuator(), msg = $('#vibMsg');
+  if (!settings.vibration) { msg.textContent = ''; return; }
+  if (!act) msg.textContent = 'No controller detected. Press a button on it first.';
+  else if (act.kind === 'none') msg.textContent = 'This browser does not offer vibration for this controller. Chrome or Edge with an Xbox or PlayStation controller works best.';
+  else { rumble(0.6, 0.8, 350, true); msg.textContent = 'Test rumble sent to ' + act.gp.id.replace(/\s*\(.*$/, '') + '.'; }
+});
 $('#ctrlBtn').addEventListener('click', () => openPanel('pControls', inputMode === 'pad'));
 $('#ctrlBack').addEventListener('click', () => openPanel('pSettings', inputMode === 'pad'));
 document.querySelectorAll('.mbtn[data-panel]').forEach(b => b.addEventListener('click', () => openPanel(b.dataset.panel, inputMode === 'pad')));
@@ -3283,6 +3356,17 @@ function syncFS() {
 document.addEventListener('fullscreenchange', () => { syncFS(); resize(); });
 document.addEventListener('webkitfullscreenchange', () => { syncFS(); resize(); });
 syncFS();
+// browsers only allow fullscreen from a click, tap or key press, so go fullscreen on the first one
+{
+  const first = e => {
+    if (e.type === 'keydown' && ['Escape', 'F11', 'MetaLeft', 'MetaRight', 'AltLeft', 'Tab'].includes(e.code)) return;
+    removeEventListener('pointerdown', first, true); removeEventListener('keydown', first, true);
+    if (settings.autoFS && fsOk && !isFS()) { try { const p = fsReq.call(fsRoot); if (p && p.then) p.then(lockLandscape).catch(() => {}); } catch (_) {} }
+  };
+  addEventListener('pointerdown', first, true); addEventListener('keydown', first, true);
+}
+$('#autoFsBtn').addEventListener('click', () => { settings.autoFS = !settings.autoFS; store.set('autoFS', settings.autoFS); applySettingsUI(); });
+if (!fsOk) $('#autoFsBtn').hidden = true;
 
 addEventListener('resize', resize);
 resize(); applySettingsUI(); renderBest();
