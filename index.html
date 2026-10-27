@@ -1431,17 +1431,21 @@ class Airships {
       s.scanT -= dt;
       if (s.scanT <= 0) {
         s.scanT = 0.5;
-        const yaw = s.g.rotation.y, ahead = this.clearance(P.x, P.z, yaw, 260);
-        if (ahead > P.y + 120) {
+        const yaw = s.g.rotation.y, ahead = this.clearance(P.x, P.z, yaw, 340);
+        if (ahead > P.y + 100) {
           // too tall to climb over in time: turn towards the lower side
-          const l = this.clearance(P.x, P.z, yaw + 0.6, 220), r = this.clearance(P.x, P.z, yaw - 0.6, 220);
-          s.turn = l <= r ? 0.09 : -0.09; s.wantY = Math.max(s.baseY, Math.min(l, r) + 45);
+          const l = this.clearance(P.x, P.z, yaw + 0.7, 260), r = this.clearance(P.x, P.z, yaw - 0.7, 260);
+          s.turn = l <= r ? 0.14 : -0.14; s.wantY = Math.max(s.baseY, Math.min(l, r) + 45, s.wantY);
         } else { s.turn *= 0.5; s.wantY = Math.max(s.baseY, ahead + 45); }
-        if (this.clearance(P.x, P.z, yaw, 0) > P.y - 18) { this.place(s, focus, false); continue; }   // stuck inside something: start over elsewhere
+        // too close to a roof: nearly stop and climb out quickly (never teleport)
+        const under = this.clearance(P.x, P.z, yaw, 40);
+        s.emergency = under > P.y - 30;
+        if (s.emergency) s.wantY = Math.max(s.wantY, under + 45);
       }
       s.g.rotation.y += s.turn * dt;
-      const y = s.g.rotation.y; P.x += Math.sin(y) * s.speed * dt; P.z += Math.cos(y) * s.speed * dt;
-      P.y += clamp(s.wantY - P.y, -6 * dt, 9 * dt);
+      const y = s.g.rotation.y, sp = s.speed * (s.emergency ? 0.15 : 1);
+      P.x += Math.sin(y) * sp * dt; P.z += Math.cos(y) * sp * dt;
+      P.y += clamp(s.wantY - P.y, -6 * dt, (s.emergency ? 35 : 12) * dt);
       if (Math.hypot(P.x - focus.x, P.z - focus.z) > 1000) this.place(s, focus, false);
       s.cone.rotation.x = -0.3 + Math.sin(t * 0.27 + s.i * 2) * 0.3; s.cone.rotation.z = Math.sin(t * 0.19 + s.i) * 0.45;
     }
@@ -2377,6 +2381,18 @@ function spawnCop(c) {
   c.active = true; c.wrecked = false; c.wreckT = 0; c.lock = 0; c.inbound = 0; c.mesh.group.visible = true;
 }
 const copInp = { throttle: 0, steer: 0, lift: 0, boost: false };
+const REP_DIRS = Array.from({ length: 8 }, (_, i) => [Math.sin(i * TAU / 8), Math.cos(i * TAU / 8)]);
+function copRepel(c, dt) {
+  // walls beside a cruiser push it away; walls straight ahead push only weakly, so head-on crashes still happen
+  const fx = Math.sin(c.yaw), fz = Math.cos(c.yaw);
+  let px = 0, pz = 0;
+  for (const [dx, dz] of REP_DIRS) {
+    const side = Math.abs(dx * fz - dz * fx), w = 0.2 + 0.8 * side;
+    if (world.blockedAt(c.pos.x + dx * 7, c.pos.y, c.pos.z + dz * 7)) { px -= dx * w; pz -= dz * w; }
+    else if (world.blockedAt(c.pos.x + dx * 15, c.pos.y, c.pos.z + dz * 15)) { px -= dx * w * 0.45; pz -= dz * w * 0.45; }
+  }
+  if (px || pz) { c.vel.x += px * 80 * dt; c.vel.z += pz * 80 * dt; }
+}
 function copAI(c) {
   // cruisers race past you on a side lane, then turn into your path to cut you off
   const p = player.pos, fx = Math.sin(player.yaw), fz = Math.cos(player.yaw);
@@ -2508,6 +2524,7 @@ function simStep(dt) {
       if (c.pos.y <= 2.5 || wImp > 4 || c.wreckT > 7) { explode(c.pos, 1.5); c.active = false; c.mesh.group.visible = false; }
       continue;
     }
+    copRepel(c, dt);
     const imp = c.step(copAI(c), dt, world);
     if (imp > 24) { wreckCop(c, false); continue; }
     const dx = player.pos.x - c.pos.x, dy = player.pos.y - c.pos.y, dz = player.pos.z - c.pos.z, d = Math.hypot(dx, dy, dz);
