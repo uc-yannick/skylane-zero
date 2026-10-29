@@ -396,7 +396,7 @@ body.input-pad .mode:focus,body.input-pad .btn:focus,body.input-pad input:focus{
           <dt>A</dt><dd>Hold to boost</dd>
           <dt>B</dt><dd>Hold for handbrake: drift through corners</dd>
           <dt>R3</dt><dd>Hold to look behind</dd>
-          <dt>Select / View</dt><dd>Camera: close, far, cockpit</dd>
+          <dt>Select / View</dt><dd>Camera: close, far, front bumper, cockpit</dd>
           <dt>Start</dt><dd>Menu</dd>
           <dt>D-pad / A / B</dt><dd>Move, select and go back in menus</dd>
         </dl>
@@ -411,7 +411,7 @@ body.input-pad .mode:focus,body.input-pad .btn:focus,body.input-pad input:focus{
           <dt>G</dt><dd>Flares (middle mouse button too)</dd>
           <dt>X</dt><dd>Hold for handbrake and drift</dd>
           <dt>B</dt><dd>Hold to look behind</dd>
-          <dt>V</dt><dd>Camera: close, far, cockpit</dd>
+          <dt>V</dt><dd>Camera: close, far, front bumper, cockpit</dd>
           <dt>Mouse</dt><dd>Click to capture, move to steer and climb, left click fires, right click boosts</dd>
           <dt>Esc</dt><dd>Menu and release the mouse</dd>
         </dl>
@@ -529,7 +529,7 @@ const hemi = new THREE.HemisphereLight(0x8a8690, 0x3a2a1c, 0.9); scene.add(hemi)
 const sun = new THREE.DirectionalLight(0xffc890, 0.55); sun.position.set(-0.4, 1, 0.3); scene.add(sun);
 const fillL = new THREE.DirectionalLight(0x9fb4c8, 0.25); fillL.position.set(0.5, 0.2, -1); scene.add(fillL);
 
-const settings = { quality: store.get('gfx', 'low'), volume: store.get('volume', 1), music: store.get('music', true), shake: store.get('shake', true), camMode: ['close', 'far', 'cockpit'].includes(store.get('camMode', 'close')) ? store.get('camMode', 'close') : 'close',
+const settings = { quality: store.get('gfx', 'low'), volume: store.get('volume', 1), music: store.get('music', true), shake: store.get('shake', true), camMode: ['close', 'far', 'bumper', 'cockpit'].includes(store.get('camMode', 'close')) ? store.get('camMode', 'close') : 'close',
   motionBlur: store.get('fxMB', false), chroma: store.get('fxCA', false), crt: store.get('fxCRT', false), ps1: store.get('fxPS1', false), grain: store.get('fxGrain', false), sound: store.get('sound', true), invertY: store.get('invertY', true), mouseFly: store.get('mouseFly', true), mouseSens: store.get('mouseSens2', 0.6), vibration: store.get('vibration', true), autoFS: store.get('autoFS', true), callsign: store.get('callsign', '') };
 let composer = null;
 try {
@@ -1106,6 +1106,95 @@ function profileGeo(pts, width, bevel) {
 }
 const CAR_HULL = profileGeo([[-3.3, -0.42], [4.55, -0.4], [4.72, -0.08], [1.7, 0.44], [-1.6, 0.52], [-3.3, 0.5]], 3.2, 0.16);
 const CAR_CANOPY = profileGeo([[-1.75, 0.42], [1.55, 0.42], [0.45, 1.12], [-1.25, 1.14]], 2.2, 0.08);
+// procedural textures: panel seams, rivets, grime and a glowing livery, painted on canvases once per car type
+const LIVERY = {};
+function liveryFor(kind) {
+  if (LIVERY[kind]) return LIVERY[kind];
+  const W = 1024, H = 256, M = W / 9;   // the side texture spans 9 m x 2.25 m of the car's side profile
+  const X = z => (z + 3.4) * M, Y = y => H - (y + 0.5) * M;
+  const mk = () => { const c = document.createElement('canvas'); c.width = W; c.height = H; return [c, c.getContext('2d')]; };
+  // albedo: near-white so the paint colour shows, with seams, rivets, scuffs and soot
+  const [ca, a] = mk();
+  a.fillStyle = '#e8e8e8'; a.fillRect(0, 0, W, H);
+  for (let i = 0; i < 2600; i++) { const v = 200 + Math.random() * 55 | 0; a.fillStyle = `rgba(${v},${v},${v},0.35)`; a.fillRect(Math.random() * W, Math.random() * H, 1 + Math.random() * 3, 1); }
+  const g1 = a.createLinearGradient(0, Y(-0.45), 0, Y(0.1)); g1.addColorStop(0, 'rgba(40,36,34,0.55)'); g1.addColorStop(1, 'rgba(40,36,34,0)'); a.fillStyle = g1; a.fillRect(0, Y(0.1), W, Y(-0.45) - Y(0.1));
+  const g2 = a.createLinearGradient(X(-3.4), 0, X(-2.2), 0); g2.addColorStop(0, 'rgba(20,18,18,0.6)'); g2.addColorStop(1, 'rgba(20,18,18,0)'); a.fillStyle = g2; a.fillRect(0, 0, X(-2.2), H);
+  a.strokeStyle = 'rgba(30,30,34,0.85)'; a.lineWidth = 2;
+  for (const z of [-2.2, -0.6, 1.0, 2.6, 3.7]) { a.beginPath(); a.moveTo(X(z), Y(0.6)); a.lineTo(X(z), Y(-0.45)); a.stroke(); }
+  a.beginPath(); a.moveTo(X(-3.4), Y(0.05)); a.lineTo(X(4.8), Y(0.05)); a.stroke();
+  a.fillStyle = 'rgba(30,30,34,0.8)';
+  for (const z of [-2.2, -0.6, 1.0, 2.6]) for (const y of [0.32, -0.25]) for (const d of [-0.07, 0.07]) { a.beginPath(); a.arc(X(z + d), Y(y), 2.2, 0, 7); a.fill(); }
+  for (let k = 0; k < 4; k++) a.fillRect(X(1.25) + k * 9, Y(0.33), 5, 14);   // vent slots
+  const map = new THREE.CanvasTexture(ca);
+  // bump: recessed seams and vents
+  const [cb, b] = mk();
+  b.fillStyle = '#808080'; b.fillRect(0, 0, W, H); b.strokeStyle = '#303030'; b.lineWidth = 3;
+  for (const z of [-2.2, -0.6, 1.0, 2.6, 3.7]) { b.beginPath(); b.moveTo(X(z), 0); b.lineTo(X(z), H); b.stroke(); }
+  b.beginPath(); b.moveTo(0, Y(0.05)); b.lineTo(W, Y(0.05)); b.stroke();
+  b.fillStyle = '#c8c8c8'; for (const z of [-2.2, -0.6, 1.0, 2.6]) for (const y of [0.32, -0.25]) for (const d of [-0.07, 0.07]) { b.beginPath(); b.arc(X(z + d), Y(y), 2.5, 0, 7); b.fill(); }
+  b.fillStyle = '#202020'; for (let k = 0; k < 4; k++) b.fillRect(X(1.25) + k * 9, Y(0.33), 5, 14);
+  const bump = new THREE.CanvasTexture(cb);
+  // emissive livery: thin glowing lines and lettering (tinted by the car's accent colour)
+  const [ce, e] = mk();
+  e.fillStyle = '#000'; e.fillRect(0, 0, W, H); e.fillStyle = '#fff'; e.strokeStyle = '#fff';
+  if (kind === 'cop') {
+    e.fillRect(X(-3.2), Y(0.2), X(4.4) - X(-3.2), 5); e.fillRect(X(-3.2), Y(-0.12), X(4.4) - X(-3.2), 3);
+    e.font = 'bold 34px Michroma, Chakra Petch, sans-serif'; e.textBaseline = 'middle';
+    e.fillText('POLICE', X(-1.9), Y(0.04)); e.font = '18px JetBrains Mono, monospace'; e.fillText('SKPD 9', X(2.15), Y(0.04));
+  } else {
+    e.lineWidth = 3; e.beginPath(); e.moveTo(X(-3.2), Y(0.22)); e.lineTo(X(0.6), Y(0.22)); e.lineTo(X(1.0), Y(0.12)); e.lineTo(X(4.3), Y(0.12)); e.stroke();
+    e.lineWidth = 1.5; e.beginPath(); e.moveTo(X(-3.0), Y(-0.2)); e.lineTo(X(2.2), Y(-0.2)); e.stroke();
+    e.font = 'bold 30px Michroma, Chakra Petch, sans-serif'; e.textBaseline = 'middle'; e.fillText(kind === 'player' ? 'SZ-07' : 'SZ', X(-2.0), Y(-0.02));
+    for (let k = 0; k < 5; k++) e.fillRect(X(3.0) + k * 12, Y(-0.06), 7, 7);
+  }
+  const emi = new THREE.CanvasTexture(ce);
+  // top surfaces: seams and grime only, no lettering
+  const [ct, t] = mk();
+  t.fillStyle = '#e4e4e4'; t.fillRect(0, 0, W, H);
+  for (let i = 0; i < 2600; i++) { const v = 190 + Math.random() * 60 | 0; t.fillStyle = `rgba(${v},${v},${v},0.4)`; t.fillRect(Math.random() * W, Math.random() * H, 1 + Math.random() * 4, 1 + Math.random() * 2); }
+  t.strokeStyle = 'rgba(30,30,34,0.8)'; t.lineWidth = 2; for (let x = 60; x < W; x += 130) { t.beginPath(); t.moveTo(x, 0); t.lineTo(x, H); t.stroke(); }
+  const topMap = new THREE.CanvasTexture(ct);
+  for (const tx of [map, bump, emi, topMap]) { tx.wrapS = tx.wrapT = THREE.RepeatWrapping; tx.anisotropy = 4; }
+  for (const tx of [map, bump, emi]) { tx.repeat.set(1 / 9, 1 / 2.25); tx.offset.set(3.4 / 9, 0.5 / 2.25); }
+  topMap.repeat.set(1 / 9, 1 / 4); topMap.offset.set(3.4 / 9, 0);
+  // engine pods: u runs around the pod (outer sides at u = 0.25 and 0.75), v runs tail (0) to nose (1)
+  const PW = 512, PH = 512;
+  const [cp, q] = (() => { const c = document.createElement('canvas'); c.width = PW; c.height = PH; return [c, c.getContext('2d')]; })();
+  q.fillStyle = '#e6e6e6'; q.fillRect(0, 0, PW, PH);
+  for (let i = 0; i < 2000; i++) { const v = 195 + Math.random() * 60 | 0; q.fillStyle = `rgba(${v},${v},${v},0.4)`; q.fillRect(Math.random() * PW, Math.random() * PH, 2 + Math.random() * 3, 1); }
+  const soot = q.createLinearGradient(0, PH, 0, PH * 0.72); soot.addColorStop(0, 'rgba(15,12,12,0.85)'); soot.addColorStop(1, 'rgba(15,12,12,0)'); q.fillStyle = soot; q.fillRect(0, PH * 0.72, PW, PH * 0.28);
+  q.strokeStyle = 'rgba(28,28,32,0.9)'; q.lineWidth = 3;
+  for (const v of [0.2, 0.42, 0.66, 0.86]) { q.beginPath(); q.moveTo(0, PH * (1 - v)); q.lineTo(PW, PH * (1 - v)); q.stroke(); }
+  q.fillStyle = 'rgba(28,28,32,0.9)'; for (const v of [0.2, 0.42, 0.66, 0.86]) for (let u = 0; u < PW; u += 32) { q.beginPath(); q.arc(u + 8, PH * (1 - v) - 7, 2.2, 0, 7); q.fill(); }
+  const podMap = new THREE.CanvasTexture(cp);
+  const [cq, r] = (() => { const c = document.createElement('canvas'); c.width = PW; c.height = PH; return [c, c.getContext('2d')]; })();
+  r.fillStyle = '#000'; r.fillRect(0, 0, PW, PH); r.fillStyle = '#fff';
+  for (const uc of [0.25, 0.75]) {
+    const x = uc * PW;
+    if (kind === 'cop') { r.fillRect(x - 10, PH * 0.16, 20, PH * 0.66); r.fillStyle = '#000'; r.fillRect(x - 4, PH * 0.16, 8, PH * 0.66); r.fillStyle = '#fff'; }
+    else {
+      r.fillRect(x - 3, PH * 0.14, 6, PH * 0.55);                                            // long light stripe
+      for (let k = 0; k < 3; k++) { r.beginPath(); const y = PH * (0.1 + k * 0.045); r.moveTo(x - 16, y + 14); r.lineTo(x, y); r.lineTo(x + 16, y + 14); r.lineTo(x + 16, y + 20); r.lineTo(x, y + 6); r.lineTo(x - 16, y + 20); r.fill(); }   // chevrons near the nose
+      for (let k = 0; k < 6; k++) r.fillRect(x + 12, PH * 0.74 + k * 9, 6, 5);               // status dots near the tail
+    }
+  }
+  const podEmi = new THREE.CanvasTexture(cq);
+  for (const tx of [podMap, podEmi]) tx.anisotropy = 4;
+  return (LIVERY[kind] = { map, bump, emi, topMap, podMap, podEmi });
+}
+// canopy glass: dark tint, a soft reflection streak and window frames
+let GLASS_TEX = null;
+function glassTex() {
+  if (GLASS_TEX) return GLASS_TEX;
+  const c = document.createElement('canvas'); c.width = 512; c.height = 128; const x = c.getContext('2d');
+  x.fillStyle = '#9aa6b4'; x.fillRect(0, 0, 512, 128);
+  const gr = x.createLinearGradient(0, 0, 512, 128); gr.addColorStop(0.25, 'rgba(255,255,255,0)'); gr.addColorStop(0.42, 'rgba(255,255,255,0.65)'); gr.addColorStop(0.5, 'rgba(255,255,255,0)'); gr.addColorStop(0.62, 'rgba(255,255,255,0.35)'); gr.addColorStop(0.7, 'rgba(255,255,255,0)');
+  x.fillStyle = gr; x.fillRect(0, 0, 512, 128);
+  x.fillStyle = '#141418'; x.fillRect(0, 0, 512, 10); x.fillRect(0, 118, 512, 10); x.fillRect(250, 0, 12, 128);
+  GLASS_TEX = new THREE.CanvasTexture(c); GLASS_TEX.wrapS = GLASS_TEX.wrapT = THREE.RepeatWrapping;
+  GLASS_TEX.repeat.set(1 / 3.4, 1 / 0.75); GLASS_TEX.offset.set(1.75 / 3.4, -0.42 / 0.75);
+  return GLASS_TEX;
+}
 function makeCar(kind, accent) {
   const cop = kind === 'cop';
   const g = new THREE.Group(); g.rotation.order = 'YXZ';
@@ -1114,15 +1203,29 @@ function makeCar(kind, accent) {
   const glass = new THREE.MeshStandardMaterial({ color: 0x0a1424, metalness: 0.8, roughness: 0.15, emissive: cop ? 0x1a0812 : 0x082233 });
   const glow = new THREE.MeshBasicMaterial({ color: 0xffffff });
   const add = (geo, mat, x, y, z, rx = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.x = rx; g.add(m); return m; };
-  add(CAR_HULL, paint, 0, 0, 0);
-  add(CAR_CANOPY, glass, 0, 0, 0);
+  const L = liveryFor(kind);
+  const hullSide = paint.clone(); hullSide.map = L.map; hullSide.bumpMap = L.bump; hullSide.bumpScale = 0.02; hullSide.emissiveMap = L.emi; hullSide.emissive = new THREE.Color(0, 0, 0);
+  const hullTop = paint.clone(); hullTop.map = L.topMap; hullTop.bumpMap = L.topMap; hullTop.bumpScale = 0.01;
+  add(CAR_HULL, [hullSide, hullTop], 0, 0, 0);
+  const glassSide = glass.clone(); glassSide.map = glassTex();
+  const podMat = paint.clone(); podMat.map = L.podMap; podMat.bumpMap = L.podMap; podMat.bumpScale = 0.015; podMat.emissiveMap = L.podEmi; podMat.emissive = new THREE.Color(0, 0, 0);
+  add(CAR_CANOPY, [glassSide, glass], 0, 0, 0);
   add(new THREE.BoxGeometry(3.6, 0.2, 6.7), trim, 0, -0.44, 0.1);
-  const pg = new THREE.CylinderGeometry(0.6, 0.72, 5.4, 12), rg = new THREE.CylinderGeometry(0.5, 0.5, 0.15, 12);
+  const pg = new THREE.CylinderGeometry(0.6, 0.72, 5.4, 16), rg = new THREE.CylinderGeometry(0.5, 0.5, 0.15, 16);
+  const darkMat = new THREE.MeshStandardMaterial({ color: 0x0b0b0e, metalness: 0.6, roughness: 0.5 });
+  const fanGeo = new THREE.BoxGeometry(0.9, 0.08, 0.04), bandGeo = new THREE.CylinderGeometry(0.66, 0.66, 0.12, 16, 1, true);
+  for (const s of [-1, 1]) {
+    add(new THREE.CircleGeometry(0.55, 16), darkMat, s * 2.05, -0.15, 2.36);                        // intake fan face
+    for (let k = 0; k < 3; k++) { const b = add(fanGeo, trim, s * 2.05, -0.15, 2.37); b.rotation.z = k * Math.PI / 3; }   // fan blades
+    for (const z of [1.2, -1.0]) add(bandGeo, trim, s * 2.05, -0.15, z, Math.PI / 2);                 // pod panel bands
+  }
+  for (const x of [-0.9, 0, 0.9]) add(new THREE.BoxGeometry(0.05, 0.3, 0.9), darkMat, x, -0.5, -2.9);   // tail diffuser fins
+  for (const [x, z] of [[-1, 2.6], [1, 2.6], [-1, -1.9], [1, -1.9]]) { const p = add(new THREE.CylinderGeometry(0.42, 0.5, 0.08, 14), darkMat, x, -0.58, z); p.userData.pad = true; }
   const fg = new THREE.ConeGeometry(0.45, 2.4, 10, 1, true);
   const fmat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
   const flames = [];
   for (const s of [-1, 1]) {
-    add(pg, paint, s * 2.05, -0.15, -0.4, Math.PI / 2);
+    add(pg, podMat, s * 2.05, -0.15, -0.4, Math.PI / 2);
     add(rg, glow, s * 2.05, -0.15, -3.12, Math.PI / 2);
     const fl = add(fg, fmat, s * 2.05, -0.15, -4.3, -Math.PI / 2); flames.push(fl);
   }
@@ -1172,15 +1275,51 @@ function makeCar(kind, accent) {
     for (const s of [-1, 1]) add(new THREE.BoxGeometry(1.5, 0.12, 1.4), trim, s * 2.05, -0.72, 0.6);
     for (const x of [-1.6, 1.6, -2.5, 2.5]) { const m = makeMissileMesh(); m.position.set(x, -0.95, 0.6); g.add(m); pods.push(m); }
   }
+  // first-person cockpit (player only, shown only in the cockpit camera)
+  let cockpit = null, yoke = null;
+  if (kind === 'player') {
+    cockpit = new THREE.Group(); cockpit.visible = false; g.add(cockpit);
+    const frame = new THREE.MeshStandardMaterial({ color: 0x101014, metalness: 0.5, roughness: 0.55 });
+    const dash = new THREE.MeshStandardMaterial({ color: 0x15151b, metalness: 0.3, roughness: 0.8 });
+    const scr = (c, i) => new THREE.MeshBasicMaterial({ color: new THREE.Color(c).multiplyScalar(i) });
+    const cadd = (geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); cockpit.add(m); return m; };
+    // windshield frame: A-pillars along the glass edges, header above, a thin centre strut
+    const ap = Math.atan2(1.12 - 0.42, 1.55 - 0.45), apLen = Math.hypot(1.1, 0.7);
+    for (const s of [-1, 1]) cadd(new THREE.BoxGeometry(0.09, 0.07, apLen), frame, s * 1.0, 0.78, 1.0, ap, 0, 0);
+    cadd(new THREE.BoxGeometry(2.1, 0.1, 0.12), frame, 0, 1.1, 0.42);
+    cadd(new THREE.BoxGeometry(0.03, 0.03, apLen), frame, 0, 0.78, 1.0, ap, 0, 0);
+    for (const s of [-1, 1]) { cadd(new THREE.BoxGeometry(0.09, 0.07, 1.65), frame, s * 1.02, 1.1, -0.4); cadd(new THREE.BoxGeometry(0.09, 0.7, 0.09), frame, s * 1.0, 0.78, -1.45, -0.6, 0, 0); }
+    cadd(new THREE.BoxGeometry(2.1, 0.08, 0.1), frame, 0, 1.12, -1.25);
+    // dashboard with glowing displays
+    cadd(new THREE.BoxGeometry(2.0, 0.22, 0.75), dash, 0, 0.56, 0.95, 0.12);
+    const dispTex = (col) => { const c = document.createElement('canvas'); c.width = 256; c.height = 96; const x = c.getContext('2d');
+      x.fillStyle = '#05070a'; x.fillRect(0, 0, 256, 96); x.strokeStyle = col; x.fillStyle = col; x.lineWidth = 2; x.strokeRect(4, 4, 248, 88);
+      x.beginPath(); for (let i = 0; i < 24; i++) x.lineTo(14 + i * 10, 60 - Math.sin(i * 0.7) * 16 - Math.random() * 10); x.stroke();
+      for (let i = 0; i < 6; i++) x.fillRect(14 + i * 38, 74, 28 * Math.random() + 6, 8); x.font = '16px monospace'; x.fillText('SZ-07  SYS OK', 14, 24);
+      return new THREE.CanvasTexture(c); };
+    cadd(new THREE.PlaneGeometry(0.46, 0.17), new THREE.MeshBasicMaterial({ map: dispTex('#47e4ff'), color: new THREE.Color(0.75, 0.75, 0.75) }), -0.52, 0.71, 0.6, -0.5, Math.PI, 0);
+    cadd(new THREE.PlaneGeometry(0.46, 0.17), new THREE.MeshBasicMaterial({ map: dispTex('#ffa13d'), color: new THREE.Color(0.75, 0.75, 0.75) }), 0.52, 0.71, 0.6, -0.5, Math.PI, 0);
+    cadd(new THREE.BoxGeometry(1.7, 0.012, 0.012), scr(0xffa13d, 1.4), 0, 0.68, 1.28);
+    for (let k = 0; k < 6; k++) cadd(new THREE.BoxGeometry(0.05, 0.025, 0.02), scr(k % 2 ? 0x47e4ff : 0xff3355, 1.2), -0.25 + k * 0.1, 0.665, 0.63, -0.5);
+    // side consoles
+    for (const s of [-1, 1]) cadd(new THREE.BoxGeometry(0.25, 0.3, 1.4), dash, s * 0.85, 0.5, -0.2);
+    // futuristic steering yoke: an open half-ring on a column
+    yoke = new THREE.Group(); yoke.position.set(0, 0.72, 0.34); yoke.rotation.x = -0.35; cockpit.add(yoke);
+    const ring = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.025, 8, 24, Math.PI * 1.25), frame); ring.rotation.z = -Math.PI * 0.125 + Math.PI; yoke.add(ring);
+    const hub = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.08, 0.05), dash); yoke.add(hub);
+    const hl2 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.01, 0.01), scr(0xffa13d, 1.6)); hl2.position.z = -0.03; yoke.add(hl2);
+    for (const s of [-1, 1]) { const grip = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.14, 0.05), dash); grip.position.set(s * 0.2, -0.04, 0); yoke.add(grip); }
+    cadd(new THREE.CylinderGeometry(0.03, 0.04, 0.35, 8), frame, 0, 0.62, 0.5, Math.PI / 2 - 0.35, 0, 0);
+  }
   const setColor = hex => {
     const c = new THREE.Color(hex);
-    if (cop) { paint.color.setHex(0x1b1e26); glow.color.setRGB(1.4, 1.5, 1.8); fmat.color.setRGB(0.6, 0.8, 1.6); underMat.color.setHex(0x223366); return; }
-    paint.color.copy(c).multiplyScalar(0.3);
+    if (cop) { paint.color.setHex(0x1b1e26); hullSide.color.setHex(0x1b1e26); hullTop.color.setHex(0x1b1e26); hullSide.emissive.setRGB(1.1, 1.2, 1.5); podMat.color.setHex(0x1b1e26); podMat.emissive.setRGB(0.9, 1.0, 1.4); glow.color.setRGB(1.4, 1.5, 1.8); fmat.color.setRGB(0.6, 0.8, 1.6); underMat.color.setHex(0x223366); return; }
+    paint.color.copy(c).multiplyScalar(0.3); hullSide.color.copy(paint.color); hullTop.color.copy(paint.color); hullSide.emissive.copy(c).multiplyScalar(1.3); podMat.color.copy(paint.color); podMat.emissive.copy(c).multiplyScalar(1.2);
     glow.color.copy(c).multiplyScalar(1.8); fmat.color.copy(c).multiplyScalar(1.6); underMat.color.copy(c);
   };
   setColor(accent || '#ff9a3d');
   scene.add(g);
-  return { group: g, flames, cone, pods, muzzles, setColor };
+  return { group: g, flames, cone, pods, muzzles, setColor, cockpit, yoke };
 }
 
 /* ---------- Rain ---------- */
@@ -2381,7 +2520,7 @@ function updateMissiles(dt) {
         if (m.attached) m.dir.copy(game.aim);   // the aim may have moved while it dropped: launch along where you point now
         m.origin = (m.origin || new V3()).copy(m.pos);
         m.lit = true; m.glow.visible = true; m.speed = Math.max(45, m.vel.dot(m.dir) + (m.attached ? 25 : 0)); m.attached = false;
-        for (let i = 0; i < 10; i++) smoke.emit(m.pos.x, m.pos.y, m.pos.z, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 8, 1.2 + Math.random(), 1.5, 6, 0.3, 0.28, 0.33, 0.6, 2, 1);
+        for (let i = 0; i < 5; i++) smoke.emit(m.pos.x - m.dir.x * 1.5, m.pos.y - m.dir.y * 1.5, m.pos.z - m.dir.z * 1.5, (Math.random() - 0.5) * 3, (Math.random() - 0.5) * 2, (Math.random() - 0.5) * 3, 0.9 + Math.random() * 0.6, 1, 3.5, 0.3, 0.28, 0.33, 0.4, 2, 1);
       }
       if (m.target && m.target.isFlare && m.target.life <= 0) { m.target = null; m.lostT = 0.7; }
       // unguided shots ride your aim for a moment, so they follow you through a turn instead of flying into the wall
@@ -2410,21 +2549,23 @@ function updateMissiles(dt) {
       }
       fire.emit(m.pos.x - m.dir.x * 1.3, m.pos.y - m.dir.y * 1.3, m.pos.z - m.dir.z * 1.3, 0, 0, 0, 0.1, 1.8, 0.5, 2.2, 1.0, 0.35, 1, 0, 0);
     }
+    // arming: until a missile is well clear of whoever fired it, it only reacts to its own locked target.
+    // Your own missiles never collide with your own car at all.
+    const armed = m.lit && (m.t > 0.9 || !m.origin || m.pos.distanceTo(m.origin) > 30);
+    const fuse = (o, d) => (o === m.target ? m.lit && d < 7 : armed && d < 5);
     if (game.mode === 'mp') {
       // my own device decides whether a missile hits me
-      if (!m.own && mp.alive && mp.protect <= 0 && !friendlyTo(m.ownerId) && m.pos.distanceTo(player.pos) < (m.target === player ? 7 : 5)) { meHit(m); killMissile(m); continue; }
+      if (!m.own && mp.alive && mp.protect <= 0 && !friendlyTo(m.ownerId) && fuse(player, m.pos.distanceTo(player.pos))) { meHit(m); killMissile(m); continue; }
       let vis = null;
-      for (const r of remotes.values()) if (r.alive && r.id !== m.ownerId && m.pos.distanceTo(r.pos) < (r === m.target ? 7 : 5)) { vis = r; break; }
+      for (const r of remotes.values()) if (r.alive && r.id !== m.ownerId && fuse(r, m.pos.distanceTo(r.pos))) { vis = r; break; }
       if (vis) { explode(m.pos, 1); killMissile(m); continue; }
     } else if (game.mode === 'getaway' && m.enemy) {
       if (m.lit && m.target === player && m.pos.distanceTo(player.pos) < 6) { copMissileHit(m); killMissile(m); continue; }
     } else if (game.mode === 'getaway') {
       let hit = null;
-      for (const c of cops) if (c.active && !c.wrecked && m.pos.distanceTo(c.pos) < (c === m.target ? 7 : 5)) { hit = c; break; }
+      for (const c of cops) if (c.active && !c.wrecked && fuse(c, m.pos.distanceTo(c.pos))) { hit = c; break; }
       if (hit) { hitCop(hit, m); killMissile(m); continue; }
     }
-    // arming distance: a missile only detonates on scenery once it is well clear of the launcher
-    const armed = m.lit && (m.t > 0.9 || !m.origin || m.pos.distanceTo(m.origin) > 30);
     if (m.pos.y < 1 || m.t > 7 || (armed && world.blockedAt(m.pos.x, m.pos.y, m.pos.z))) { explode(m.pos, 0.7); killMissile(m); }
   }
 }
@@ -3600,12 +3741,16 @@ function updateVisuals(dt, t) {
 }
 const fovCap = () => 2 * Math.atan(Math.tan(57.5 * Math.PI / 180) / Math.max(1, camera.aspect)) * 180 / Math.PI;
 const Q_FLIP = new THREE.Quaternion().setFromAxisAngle(new V3(0, 1, 0), Math.PI);
-const CAM_MODES = ['close', 'far', 'cockpit'], CAM_NAMES = { close: 'CLOSE', far: 'FAR', cockpit: 'COCKPIT' };
+const CAM_MODES = ['close', 'far', 'bumper', 'cockpit'], CAM_NAMES = { close: 'CLOSE', far: 'FAR', bumper: 'BUMPER', cockpit: 'COCKPIT' };
+const EYE = new V3();
 function cycleCamera() {
   settings.camMode = CAM_MODES[(CAM_MODES.indexOf(settings.camMode) + 1) % CAM_MODES.length]; store.set('camMode', settings.camMode);
   toast('CAMERA · ' + CAM_NAMES[settings.camMode], 'cyan'); Snd.blip(900, 0.05);
 }
+function setNear(n) { if (camera.near !== n) { camera.near = n; camera.updateProjectionMatrix(); } }
 function updateCamera(dt) {
+  setNear(1);
+  if (playerMesh.cockpit && game.state !== 'play') playerMesh.cockpit.visible = false;
   if (game.state === 'menu') {
     attract.t += dt; attract.z += dt * 36;
     const a = attract.t;
@@ -3655,13 +3800,20 @@ function updateCamera(dt) {
   game.fovKick = Math.max(0, game.fovKick - dt * 8);
   const fov = 64 + Math.min(26, player.speed * 0.17) + (player.boosting ? 6 : 0) - game.fovKick - (game.slowT > 0 ? 7 : 0);
   camera.fov = lerp(camera.fov, Math.min(fov, fovCap() + 10), 1 - Math.exp(-dt * 3)); camera.updateProjectionMatrix();
-  if (settings.camMode === 'cockpit' && !(input.look && !game.menuOpen)) {
-    // first person: sit in the canopy and turn, pitch and bank with the car
-    const g = playerMesh.group; g.updateMatrixWorld();
-    camera.position.set(0, 1.5, 0.7); g.localToWorld(camera.position);
-    camera.quaternion.copy(g.quaternion).multiply(Q_FLIP);
-    if (game.shake > 0 && !reduceMotion && settings.shake) { const s = game.shake * 0.25; camera.position.x += (Math.random() - 0.5) * s; camera.position.y += (Math.random() - 0.5) * s; }
+  const fp = settings.camMode === 'bumper' || settings.camMode === 'cockpit';
+  if (playerMesh.cockpit) playerMesh.cockpit.visible = settings.camMode === 'cockpit';
+  if (fp) {
+    // first person: on the front bumper (rear bumper when looking back), or seated in the cockpit
+    const back = input.look && !game.menuOpen, g = playerMesh.group; g.updateMatrixWorld();
+    if (settings.camMode === 'bumper') EYE.set(0, back ? 0.3 : 0.02, back ? -3.75 : 4.95);
+    else EYE.set(0, back ? 1.6 : 0.84, back ? -1.1 : -0.6);
+    camera.position.copy(EYE); g.localToWorld(camera.position);
+    camera.quaternion.copy(g.quaternion); if (!back) camera.quaternion.multiply(Q_FLIP);
+    if (game.shake > 0 && !reduceMotion && settings.shake) { const s = game.shake * 0.12; camera.position.x += (Math.random() - 0.5) * s; camera.position.y += (Math.random() - 0.5) * s; }
     camPos.copy(camera.position);
+    if (playerMesh.yoke) playerMesh.yoke.rotation.z = lerp(playerMesh.yoke.rotation.z, (game.menuOpen ? 0 : input.steer) * 0.6, 1 - Math.exp(-dt * 10));
+    setNear(0.1);
+    return;
   }
   if (input.look && !game.menuOpen) {
     // look back: hard cut to a camera in front of the car facing the tail
