@@ -227,6 +227,9 @@ h1.small{font-size:clamp(20px,3.6vw,36px)}
 .mpanel .settings .chip{font-size:.78em}
 .opts{display:grid;gap:.35em}
 .ctabs{display:flex;flex-wrap:wrap;gap:.35em}
+.cstack{display:grid;align-items:start}.cstack>.opts{grid-area:1/1}.cstack>.opts.off{visibility:hidden;pointer-events:none}
+#pSettings{top:0;transform:translateX(-1.6em)}#pSettings.open{transform:none}
+#vibMsg{min-height:2.6em}
 .ctab{flex:1;min-width:5.5em;padding:.6em .5em;background:transparent;border:1px solid var(--line);font-size:.72em;letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
 .ctab.sel{color:var(--ink);border-color:var(--amber);background:rgba(255,161,61,.12)}
 .ctab:hover,.ctab:focus-visible,body.input-pad .ctab:focus{border-color:var(--amber);outline:none;color:var(--ink)}
@@ -348,6 +351,7 @@ body.input-pad .mode:focus,body.input-pad .btn:focus,body.input-pad input:focus{
           <button class="ctab" data-cat="gfx">Graphics</button>
           <button class="ctab" data-cat="snd">Sound</button>
         </div>
+        <div class="cstack">
         <div class="opts" data-cat="game">
           <button class="opt" id="invBtn">Invert flight controls <b>On</b></button>
           <button class="opt mouse-opt" id="mouseBtn">Mouse flying <b>On</b></button>
@@ -357,12 +361,12 @@ body.input-pad .mode:focus,body.input-pad .btn:focus,body.input-pad input:focus{
           <button class="opt" id="nameBtn">Pilot name <b>VIPER</b></button>
           <button class="opt" id="ctrlBtn">Controls <b>View</b></button>
         </div>
-        <div class="opts" data-cat="disp" hidden>
+        <div class="opts off" data-cat="disp">
           <button class="opt" id="fsChip">Fullscreen <b>Off</b></button>
           <button class="opt" id="autoFsBtn">Start in fullscreen <b>On</b></button>
           <button class="opt" id="shakeBtn">Camera shake <b>On</b></button>
         </div>
-        <div class="opts" data-cat="gfx" hidden>
+        <div class="opts off" data-cat="gfx">
           <button class="opt" id="qBtn">Graphics quality <b>Low</b></button>
           <button class="opt" id="mbBtn">Motion blur <b>Off</b></button>
           <button class="opt" id="caBtn">Chromatic aberration <b>Off</b></button>
@@ -371,10 +375,11 @@ body.input-pad .mode:focus,body.input-pad .btn:focus,body.input-pad input:focus{
           <button class="opt" id="grainBtn">Film grain <b>Off</b></button>
           <div class="muted">Low is the fastest and best for PC browsers. High adds bloom glow, a sharper image and more traffic.</div>
         </div>
-        <div class="opts" data-cat="snd" hidden>
+        <div class="opts off" data-cat="snd">
           <button class="opt" id="sBtn">Sound <b>On</b></button>
           <button class="opt" id="volBtn">Volume <b>100%</b></button>
           <button class="opt" id="musBtn">Ambient music <b>On</b></button>
+        </div>
         </div>
         <div class="muted" id="setMsg" aria-live="polite"></div>
         <div class="muted" id="vibMsg" aria-live="polite"></div>
@@ -391,6 +396,7 @@ body.input-pad .mode:focus,body.input-pad .btn:focus,body.input-pad input:focus{
           <dt>A</dt><dd>Hold to boost</dd>
           <dt>B</dt><dd>Hold for handbrake: drift through corners</dd>
           <dt>R3</dt><dd>Hold to look behind</dd>
+          <dt>Select / View</dt><dd>Camera: close, far, cockpit</dd>
           <dt>Start</dt><dd>Menu</dd>
           <dt>D-pad / A / B</dt><dd>Move, select and go back in menus</dd>
         </dl>
@@ -405,6 +411,7 @@ body.input-pad .mode:focus,body.input-pad .btn:focus,body.input-pad input:focus{
           <dt>G</dt><dd>Flares (middle mouse button too)</dd>
           <dt>X</dt><dd>Hold for handbrake and drift</dd>
           <dt>B</dt><dd>Hold to look behind</dd>
+          <dt>V</dt><dd>Camera: close, far, cockpit</dd>
           <dt>Mouse</dt><dd>Click to capture, move to steer and climb, left click fires, right click boosts</dd>
           <dt>Esc</dt><dd>Menu and release the mouse</dd>
         </dl>
@@ -522,7 +529,7 @@ const hemi = new THREE.HemisphereLight(0x8a8690, 0x3a2a1c, 0.9); scene.add(hemi)
 const sun = new THREE.DirectionalLight(0xffc890, 0.55); sun.position.set(-0.4, 1, 0.3); scene.add(sun);
 const fillL = new THREE.DirectionalLight(0x9fb4c8, 0.25); fillL.position.set(0.5, 0.2, -1); scene.add(fillL);
 
-const settings = { quality: store.get('gfx', 'low'), volume: store.get('volume', 1), music: store.get('music', true), shake: store.get('shake', true),
+const settings = { quality: store.get('gfx', 'low'), volume: store.get('volume', 1), music: store.get('music', true), shake: store.get('shake', true), camMode: ['close', 'far', 'cockpit'].includes(store.get('camMode', 'close')) ? store.get('camMode', 'close') : 'close',
   motionBlur: store.get('fxMB', false), chroma: store.get('fxCA', false), crt: store.get('fxCRT', false), ps1: store.get('fxPS1', false), grain: store.get('fxGrain', false), sound: store.get('sound', true), invertY: store.get('invertY', true), mouseFly: store.get('mouseFly', true), mouseSens: store.get('mouseSens2', 0.6), vibration: store.get('vibration', true), autoFS: store.get('autoFS', true), callsign: store.get('callsign', '') };
 let composer = null;
 try {
@@ -2022,6 +2029,7 @@ addEventListener('keydown', e => {
   else if ((e.code === 'Escape' || e.code === 'KeyP') && performance.now() - mouse.lostAt > 400) { if (game.state === 'play') pause(); else if (game.state === 'paused' || game.menuOpen) resume(); }
   if (game.state === 'play' && !game.menuOpen) {
     if (e.code === 'KeyG') edge.flare = true;
+    if (e.code === 'KeyV') edge.cam = true;
     if (e.code === 'Tab') edge.swap = true;
     if (e.code === 'Digit1') edge.pick = 'msl'; if (e.code === 'Digit2') edge.pick = 'gun';
   }
@@ -2081,6 +2089,7 @@ function pollInput() {
       if (btn(11)) look = true;
       if (pressed(4)) edge.flare = true;
       if (pressed(3)) edge.swap = true;
+      if (pressed(8)) edge.cam = true;
     } else padMenu(pressed, lx, ly);
     if (pressed(9)) { if (game.state === 'play' && !game.menuOpen) pause(); else if (game.state === 'paused' || game.menuOpen) resume(); }
     pad.prev = gp.buttons.map(b => b.pressed);
@@ -2088,7 +2097,7 @@ function pollInput() {
   }
   input.look = look; input.handbrake = handbrake;
   input.flare = edge.flare || touchState.flare; input.swap = edge.swap || touchState.wpn; input.pick = edge.pick;
-  edge.flare = edge.swap = false; edge.pick = null; touchState.flare = touchState.wpn = false;
+  input.cam = edge.cam; edge.flare = edge.swap = edge.cam = false; edge.pick = null; touchState.flare = touchState.wpn = false;
   input.throttle = thr; input.steer = steer; input.lift = lift; input.boost = boost; input.fire = fire;
 }
 
@@ -2364,15 +2373,19 @@ function updateMissiles(dt) {
     if (m.attached && m.t < 0.28 && game.state === 'play') {
       // rail drop: the missile slides out and down in the car's own frame, so climbing or turning can't fly the car into it
       m.local.x += m.side * 13 * dt; m.local.y -= 9 * dt;
-      playerMesh.group.updateMatrixWorld(); m.pos.copy(m.local); playerMesh.group.localToWorld(m.pos);
+      syncMesh(player, playerMesh); playerMesh.group.updateMatrixWorld(); m.pos.copy(m.local); playerMesh.group.localToWorld(m.pos);
       m.vel.copy(player.vel);
     } else if (m.t < 0.2 && !m.attached) { m.vel.y -= 25 * dt; m.pos.addScaledVector(m.vel, dt); }
     else {
       if (!m.lit && !(m.attached && m.t < 0.28 && game.state === 'play')) {
+        if (m.attached) m.dir.copy(game.aim);   // the aim may have moved while it dropped: launch along where you point now
+        m.origin = (m.origin || new V3()).copy(m.pos);
         m.lit = true; m.glow.visible = true; m.speed = Math.max(45, m.vel.dot(m.dir) + (m.attached ? 25 : 0)); m.attached = false;
         for (let i = 0; i < 10; i++) smoke.emit(m.pos.x, m.pos.y, m.pos.z, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 8, 1.2 + Math.random(), 1.5, 6, 0.3, 0.28, 0.33, 0.6, 2, 1);
       }
       if (m.target && m.target.isFlare && m.target.life <= 0) { m.target = null; m.lostT = 0.7; }
+      // unguided shots ride your aim for a moment, so they follow you through a turn instead of flying into the wall
+      if (m.own && !m.target && m.t < 1.3 && game.state === 'play') { const a = m.dir.angleTo(game.aim); if (a > 1e-4) m.dir.lerp(game.aim, Math.min(1, 3.2 * dt / a)).normalize(); }
       const tg = targetAlive(m.target) ? m.target : null;
       if (tg && tg.isFlare && m.pos.distanceTo(tg.pos) < 5) { explode(m.pos, 0.8); killMissile(m); continue; }
       if (tg) {
@@ -2410,7 +2423,9 @@ function updateMissiles(dt) {
       for (const c of cops) if (c.active && !c.wrecked && m.pos.distanceTo(c.pos) < (c === m.target ? 7 : 5)) { hit = c; break; }
       if (hit) { hitCop(hit, m); killMissile(m); continue; }
     }
-    if (m.pos.y < 1 || m.t > 7 || world.blockedAt(m.pos.x, m.pos.y, m.pos.z)) { explode(m.pos, 0.7); killMissile(m); }
+    // arming distance: a missile only detonates on scenery once it is well clear of the launcher
+    const armed = m.lit && (m.t > 0.9 || !m.origin || m.pos.distanceTo(m.origin) > 30);
+    if (m.pos.y < 1 || m.t > 7 || (armed && world.blockedAt(m.pos.x, m.pos.y, m.pos.z))) { explode(m.pos, 0.7); killMissile(m); }
   }
 }
 /* ---------- flares ---------- */
@@ -2635,7 +2650,7 @@ function openPanel(id, focusFirst) {
 }
 function showMenuPanel(id) { showOnly('#menu'); openPanel(id, inputMode === 'pad'); }
 function focusables(root) {
-  return [...root.querySelectorAll('button, input')].filter(el => !el.disabled && el.offsetParent !== null && !el.closest('.mpanel:not(.open)'));
+  return [...root.querySelectorAll('button, input')].filter(el => !el.disabled && el.offsetParent !== null && !el.closest('.mpanel:not(.open)') && !el.closest('.opts.off'));
 }
 function navMove(dx, dy) {
   const scr = activeScreen(); if (!scr) return;
@@ -3584,6 +3599,12 @@ function updateVisuals(dt, t) {
   }
 }
 const fovCap = () => 2 * Math.atan(Math.tan(57.5 * Math.PI / 180) / Math.max(1, camera.aspect)) * 180 / Math.PI;
+const Q_FLIP = new THREE.Quaternion().setFromAxisAngle(new V3(0, 1, 0), Math.PI);
+const CAM_MODES = ['close', 'far', 'cockpit'], CAM_NAMES = { close: 'CLOSE', far: 'FAR', cockpit: 'COCKPIT' };
+function cycleCamera() {
+  settings.camMode = CAM_MODES[(CAM_MODES.indexOf(settings.camMode) + 1) % CAM_MODES.length]; store.set('camMode', settings.camMode);
+  toast('CAMERA · ' + CAM_NAMES[settings.camMode], 'cyan'); Snd.blip(900, 0.05);
+}
 function updateCamera(dt) {
   if (game.state === 'menu') {
     attract.t += dt; attract.z += dt * 36;
@@ -3618,7 +3639,8 @@ function updateCamera(dt) {
   const cp = Math.cos(game.camPitch), sp = Math.sin(game.camPitch);
   const ldx = Math.sin(player.yaw) * cp, ldy = sp, ldz = Math.cos(player.yaw) * cp;
   game.aim.set(ldx, ldy, ldz);
-  const back = 13 + player.speed * 0.045, up = 4.2 + player.speed * 0.014;
+  const far = settings.camMode === 'far';
+  const back = far ? 21 + player.speed * 0.07 : 13 + player.speed * 0.045, up = far ? 7 + player.speed * 0.02 : 4.2 + player.speed * 0.014;
   tmp.set(p.x - ldx * back, Math.max(2, p.y - ldy * back + up * cp), p.z - ldz * back);
   for (let i = 0; i < 4 && world.blockedAt(tmp.x, tmp.y, tmp.z, 1.5); i++) tmp.lerp(p, 0.4).y += 1.5;
   camPos.lerp(tmp, 1 - Math.exp(-dt * 7));
@@ -3633,6 +3655,14 @@ function updateCamera(dt) {
   game.fovKick = Math.max(0, game.fovKick - dt * 8);
   const fov = 64 + Math.min(26, player.speed * 0.17) + (player.boosting ? 6 : 0) - game.fovKick - (game.slowT > 0 ? 7 : 0);
   camera.fov = lerp(camera.fov, Math.min(fov, fovCap() + 10), 1 - Math.exp(-dt * 3)); camera.updateProjectionMatrix();
+  if (settings.camMode === 'cockpit' && !(input.look && !game.menuOpen)) {
+    // first person: sit in the canopy and turn, pitch and bank with the car
+    const g = playerMesh.group; g.updateMatrixWorld();
+    camera.position.set(0, 1.5, 0.7); g.localToWorld(camera.position);
+    camera.quaternion.copy(g.quaternion).multiply(Q_FLIP);
+    if (game.shake > 0 && !reduceMotion && settings.shake) { const s = game.shake * 0.25; camera.position.x += (Math.random() - 0.5) * s; camera.position.y += (Math.random() - 0.5) * s; }
+    camPos.copy(camera.position);
+  }
   if (input.look && !game.menuOpen) {
     // look back: hard cut to a camera in front of the car facing the tail
     tmp.set(p.x + ldx * 20, p.y + 5, p.z + ldz * 20);
@@ -3892,6 +3922,7 @@ function frame(now) {
   if (game.state === 'play') {
     if (input.pick) selectWeapon(input.pick); else if (input.swap) selectWeapon(game.weapon === 'msl' ? 'gun' : 'msl');
     if (input.flare) dropFlares();
+    if (input.cam) cycleCamera();
     if (input.fire && !prevFire && game.weapon === 'msl') triggerFire();
     const steps = Math.max(1, Math.ceil(dt / (1 / 60))), h = dt / steps;
     for (let i = 0; i < steps && game.state === 'play'; i++) { if (game.mode === 'mp') mpStep(h); else simStep(h); }
@@ -3988,7 +4019,7 @@ $('#musBtn').addEventListener('click', flip('music', 'music'));
 $('#volBtn').addEventListener('click', () => { settings.volume = settings.volume >= 1 ? 0.25 : Math.round((settings.volume + 0.25) * 100) / 100; store.set('volume', settings.volume); Snd.setMuted(!settings.sound); applySettingsUI(); });
 document.querySelectorAll('.ctab').forEach(tb => tb.addEventListener('click', () => {
   document.querySelectorAll('.ctab').forEach(x => x.classList.toggle('sel', x === tb));
-  document.querySelectorAll('#pSettings .opts').forEach(o => { o.hidden = o.dataset.cat !== tb.dataset.cat; });
+  document.querySelectorAll('#pSettings .opts').forEach(o => { o.classList.toggle('off', o.dataset.cat !== tb.dataset.cat); });
   $('#vibMsg').textContent = '';
 }));
 function toggleSound() { settings.sound = !settings.sound; store.set('sound', settings.sound); Snd.setMuted(!settings.sound); applySettingsUI(); }
