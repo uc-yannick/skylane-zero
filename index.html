@@ -53,18 +53,16 @@ body.mode-cruise .nc-only{display:none!important}
 .meter .track i{position:absolute;top:0;bottom:0;left:0;width:100%;background:var(--amber)}
 .meter.hull .track i{background:#e9e4f2}
 .meter.hull.low .track i{background:var(--siren)}
-.ammo{display:flex;gap:5px;align-items:center}
-.ammo i{width:8px;height:12px;border:1px solid rgba(255,51,85,.6);position:relative;transform:skewX(-14deg);overflow:hidden}
+.ammo{display:flex;gap:4px;align-items:center}
+.ammo i{width:7px;height:11px;border:1px solid rgba(255,51,85,.6);position:relative;transform:skewX(-14deg);overflow:hidden}
 .ammo i b{position:absolute;left:0;right:0;bottom:0;height:100%;background:rgba(255,51,85,.4)}
 .ammo i.ready b{background:var(--siren);box-shadow:0 0 6px var(--siren)}
 .ammo.flr i{border-color:rgba(71,228,255,.6)}.ammo.flr i b{background:rgba(71,228,255,.35)}.ammo.flr i.ready b{background:var(--cyan);box-shadow:0 0 6px var(--cyan)}
-.meter.wpn{opacity:.45;transition:opacity .15s}.meter.wpn.sel{opacity:1}.meter.wpn.sel span{color:var(--ink)}
-.meter.wpn.sel span::before{content:'\25B8';margin-right:2px;color:var(--amber)}
 .meter.gun .track i{background:var(--amber)}.meter.gun.hot .track i{background:var(--siren);animation:blink .25s steps(2) infinite}
-#incoming{display:grid;justify-items:center;gap:3px;padding:6px 16px 7px;background:rgba(80,0,14,.55);border:1px solid var(--siren);box-shadow:0 0 18px rgba(255,51,85,.45),inset 0 0 14px rgba(255,51,85,.3)}
-#incoming b{font-family:var(--display);font-weight:400;font-size:15px;letter-spacing:.24em;color:#fff;text-shadow:0 0 10px var(--siren)}
-#incoming span{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:#ffc2cc}
-#incoming .cl{width:150px;height:3px;background:rgba(255,255,255,.15)}#incoming .cl i{display:block;height:100%;background:var(--siren)}
+#incoming{display:grid;justify-items:center;gap:3px;padding:3px 10px 4px;background:rgba(80,0,14,.55);border:1px solid var(--siren);box-shadow:0 0 18px rgba(255,51,85,.45),inset 0 0 14px rgba(255,51,85,.3)}
+#incoming b{font-family:var(--display);font-weight:400;font-size:10.5px;letter-spacing:.2em;color:#fff;text-shadow:0 0 10px var(--siren)}
+#incoming span{display:none}
+#incoming .cl{width:110px;height:2px;background:rgba(255,255,255,.15)}#incoming .cl i{display:block;height:100%;background:var(--siren)}
 #incoming.flash{animation:blink .18s steps(2) infinite}
 #threat{position:fixed;inset:0;pointer-events:none;opacity:0;box-shadow:inset 0 0 160px 40px rgba(255,20,50,.85)}
 #mslRing{position:absolute;left:0;top:0;width:calc(150px * var(--ui));height:calc(150px * var(--ui));margin:calc(-75px * var(--ui)) 0 0 calc(-75px * var(--ui));will-change:transform,opacity;pointer-events:none}
@@ -85,12 +83,19 @@ body.mode-cruise .nc-only{display:none!important}
 @keyframes toast{0%{opacity:0;transform:translateX(-10px)}8%{opacity:1;transform:none}82%{opacity:1}100%{opacity:0}}
 
 .tc{position:absolute;top:calc(10px + env(safe-area-inset-top,0px));left:50%;transform:translateX(-50%) scale(var(--ui));transform-origin:top center;display:grid;justify-items:center;gap:6px}
-.nav{display:flex;align-items:center;gap:8px;padding:4px 12px 4px 6px;background:rgba(6,5,11,.5);border:1px solid rgba(71,228,255,.3)}
-.nav svg{width:22px;height:22px}
-.nav .d{font-family:var(--mono);font-size:15px;color:var(--cyan);font-weight:600;line-height:1.1}
+.nav{display:flex;align-items:center;gap:6px;padding:2px 10px 2px 4px;background:rgba(6,5,11,.5);border:1px solid rgba(71,228,255,.3)}
+.nav svg{width:18px;height:18px}
+.nav .d{font-family:var(--mono);font-size:13px;color:var(--cyan);font-weight:600;line-height:1.1}
 .nav .n{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bustline{width:180px;height:3px;background:rgba(255,51,85,.15)}
-.bustline i{display:block;height:100%;width:0;background:var(--siren);box-shadow:0 0 8px var(--siren)}
+.bustbox{display:grid;justify-items:center;padding:3px;background:rgba(6,5,20,.6);border:1px solid #4d7bff;animation:siren 0.5s steps(2) infinite}
+.bustbox b,.bustbox span{display:none}
+.bustbar{width:160px;height:4px;background:rgba(255,255,255,.12)}
+.bustbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#4d7bff,var(--siren));box-shadow:0 0 8px var(--siren)}
+.bustbox.hot b{color:var(--siren);text-shadow:0 0 10px var(--siren)}
+.bustbox.away{animation:none;border-color:var(--cyan)}
+@keyframes siren{0%{border-color:#4d7bff;box-shadow:0 0 14px rgba(77,123,255,.6)}50%{border-color:var(--siren);box-shadow:0 0 14px rgba(255,51,85,.6)}}
+#bustEdge{position:fixed;inset:0;pointer-events:none;opacity:0;animation:sirenEdge .5s steps(2) infinite}
+@keyframes sirenEdge{0%{box-shadow:inset 0 0 130px 30px rgba(60,100,255,.75)}50%{box-shadow:inset 0 0 130px 30px rgba(255,30,60,.75)}}
 .score{display:flex;gap:10px;align-items:center;padding:5px 12px;background:rgba(6,5,11,.55);border:1px solid var(--line);font-family:var(--mono);font-size:12px;white-space:nowrap}
 .score b{font-weight:600}
 .score .dim{color:var(--mute)}
@@ -152,9 +157,10 @@ body.mode-cruise .nc-only{display:none!important}
 #lever .lab{position:absolute;left:50%;transform:translateX(-50%);font-size:8px;letter-spacing:.12em;color:var(--mute);white-space:nowrap}
 .tb.fire{position:absolute;z-index:2;right:calc(96px + env(safe-area-inset-right,0px));bottom:calc(34px + env(safe-area-inset-bottom,0px));pointer-events:auto;width:72px;height:72px;border-radius:50%;background:rgba(6,5,11,.4);border:1px solid var(--siren);color:var(--siren);font-size:10px;letter-spacing:.14em;font-weight:700;touch-action:none}
 .tb.fire.on{background:rgba(255,51,85,.4)}
+.tb svg{width:52%;height:52%;display:block;margin:auto;pointer-events:none}.tb.fire svg{width:46%;height:46%}
 .tb.sm{position:absolute;z-index:2;pointer-events:auto;width:50px;height:50px;border-radius:50%;background:rgba(6,5,11,.4);border:1px solid rgba(236,230,245,.35);color:var(--ink);font-size:9px;letter-spacing:.1em;font-weight:700;touch-action:none}
 .tb.sm.on{background:rgba(255,161,61,.35)}
-#tbWpn{right:calc(108px + env(safe-area-inset-right,0px));bottom:calc(118px + env(safe-area-inset-bottom,0px))}
+#tbMsl{border-color:var(--siren);color:var(--siren);right:calc(108px + env(safe-area-inset-right,0px));bottom:calc(118px + env(safe-area-inset-bottom,0px))}
 #tbFlr{right:calc(176px + env(safe-area-inset-right,0px));bottom:calc(48px + env(safe-area-inset-bottom,0px));border-color:var(--cyan);color:var(--cyan)}
 #tbDrift{right:calc(176px + env(safe-area-inset-right,0px));bottom:calc(116px + env(safe-area-inset-bottom,0px))}
 
@@ -271,23 +277,24 @@ body.input-pad .mode:focus,body.input-pad .btn:focus,body.input-pad input:focus{
     <div class="speed"><b id="spd">0</b><span>km/h</span><span class="alt" id="alt">120 m</span></div>
     <div class="meter hull nc-only" id="hullM"><span>HULL</span><div class="track"><i id="hullF"></i></div></div>
     <div class="meter"><span>BOOST</span><div class="track"><i id="boostF"></i></div></div>
-    <div class="meter wpn nc-only" id="wMsl"><span>MSL</span><div class="ammo" id="ammo"><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i></div></div>
-    <div class="meter wpn gun nc-only" id="wGun"><span>GUN</span><div class="track"><i id="gunF"></i></div></div>
-    <div class="meter nc-only"><span>FLR</span><div class="ammo flr" id="flrPips"><i><b></b></i><i><b></b></i><i><b></b></i></div></div>
+    <div class="meter gun nc-only" id="wGun"><span>GUN</span><div class="track"><i id="gunF"></i></div></div>
+    <div class="meter nc-only"><span>MSL</span><div class="ammo" id="ammo"><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i></div></div>
+    <div class="meter nc-only"><span>FLR</span><div class="ammo flr" id="flrPips"><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i><i><b></b></i></div></div>
     <div id="toasts"></div>
   </div>
   <div class="tc">
     <div class="nav g-only">
       <svg viewBox="0 0 24 24" id="arrow" aria-hidden="true"><path d="M12 2 L20 20 L12 15 L4 20 Z" fill="#47e4ff"/></svg>
-      <div><div class="d" id="dist">0 m</div><div class="n" id="dname">—</div></div>
+      <div class="d" id="dist">0 m</div>
     </div>
     <div class="score mp-only" id="score"></div>
-    <div class="bustline g-only" id="bustWrap" hidden><i id="bustF"></i></div>
+    <div class="bustbox g-only" id="bustWrap" hidden><b id="bustT">CRUISER ON YOUR TAIL</b><div class="bustbar"><i id="bustF"></i></div><span id="bustS"></span></div>
     <div id="incoming" hidden><b>MISSILE INBOUND</b><span id="incTxt"></span><div class="cl"><i id="incBar"></i></div></div>
     <div class="warnline" id="warn" hidden></div>
   </div>
   <div class="tr">
     <div class="toprow">
+      <button class="iconbtn" id="camBtn" aria-label="Change camera"><svg viewBox="0 0 16 16"><rect x="1.5" y="4.5" width="9" height="7.5" rx="1" fill="none" stroke="#ece6f5" stroke-width="1.4"/><path d="M10.5 7l4-2.2v6.4l-4-2.2z" fill="#ece6f5"/></svg></button>
       <button class="iconbtn" id="pauseBtn" aria-label="Menu"><svg viewBox="0 0 16 16"><rect x="3" y="2" width="3.5" height="12" fill="#ece6f5"/><rect x="9.5" y="2" width="3.5" height="12" fill="#ece6f5"/></svg></button>
     </div>
     <canvas id="minimap" width="240" height="240"></canvas>
@@ -295,17 +302,17 @@ body.input-pad .mode:focus,body.input-pad .btn:focus,body.input-pad input:focus{
   <div id="respawn" hidden></div>
 </div>
 
-<div id="letterbox"><i></i><i></i></div><div id="flash"></div><div id="hurt"></div><div id="threat"></div>
+<div id="letterbox"><i></i><i></i></div><div id="flash"></div><div id="hurt"></div><div id="threat"></div><div id="bustEdge"></div>
 <div id="hint" style="opacity:0"></div>
 
 <div id="touch" hidden>
   <div id="zoneL"><div class="stick" id="stickL"><div class="knob"></div></div></div>
   <div id="zoneR"></div>
   <div id="lever"><div class="boostz"></div><div class="zero"></div><span class="lab" style="top:-14px">BOOST</span><span class="lab" style="bottom:-14px">REV</span><div class="knob" id="leverKnob"></div></div>
-  <button class="tb fire nc-only" id="tbFire">MSL</button>
-  <button class="tb sm nc-only" id="tbWpn">WPN</button>
-  <button class="tb sm nc-only" id="tbFlr">FLR</button>
-  <button class="tb sm" id="tbDrift">DRIFT</button>
+  <button class="tb fire nc-only" id="tbFire" aria-label="Machine gun"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.2 20V9.5c0-2.6 1.1-5 2.3-6.5 1.2 1.5 2.3 3.9 2.3 6.5V20z" fill="currentColor"/><rect x="1.9000000000000001" y="20.6" width="5.2" height="1.6" fill="currentColor" opacity=".6"/><path d="M9.7 20V9.5c0-2.6 1.1-5 2.3-6.5 1.2 1.5 2.3 3.9 2.3 6.5V20z" fill="currentColor"/><rect x="9.399999999999999" y="20.6" width="5.2" height="1.6" fill="currentColor" opacity=".6"/><path d="M17.2 20V9.5c0-2.6 1.1-5 2.3-6.5 1.2 1.5 2.3 3.9 2.3 6.5V20z" fill="currentColor"/><rect x="16.9" y="20.6" width="5.2" height="1.6" fill="currentColor" opacity=".6"/></svg></button>
+  <button class="tb sm nc-only" id="tbMsl" aria-label="Missiles"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.5c2.6 2.4 3.4 5.6 3.4 9v6.2h-6.8v-6.2c0-3.4.8-6.6 3.4-9z" fill="currentColor"/><path d="M8.6 12.5l-3.4 3.6v3l3.4-1.6zM15.4 12.5l3.4 3.6v3l-3.4-1.6z" fill="currentColor"/><path d="M10 18.2h4l-.6 3.2h-2.8z" fill="currentColor" opacity=".6"/></svg></button>
+  <button class="tb sm nc-only" id="tbFlr" aria-label="Flares"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l1.7 6.3L20 10l-6.3 1.7L12 18l-1.7-6.3L4 10l6.3-1.7z" fill="currentColor"/><circle cx="5" cy="19" r="1.6" fill="currentColor"/><circle cx="19" cy="18" r="1.2" fill="currentColor"/><circle cx="12" cy="22" r="1" fill="currentColor"/></svg></button>
+  <button class="tb sm" id="tbDrift" aria-label="Drift"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 22C6 14 9 8 17 3" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="2 1.6"/><path d="M10 22C12 15 15 10 22 6" fill="none" stroke="currentColor" stroke-width="3" stroke-dasharray="2 1.6"/></svg></button>
 </div>
 
 <section class="screen side" id="menu">
@@ -390,10 +397,10 @@ body.input-pad .mode:focus,body.input-pad .btn:focus,body.input-pad input:focus{
         <dl class="cmap">
           <dt>Left stick</dt><dd>Steer, climb and dive</dd>
           <dt>Right stick / RT LT</dt><dd>Throttle: accelerate, brake and reverse</dd>
-          <dt>R1</dt><dd>Fire (hold for the machine gun)</dd>
-          <dt>Y</dt><dd>Switch weapon: missiles or machine gun</dd>
+          <dt>X</dt><dd>Hold to fire the machine gun</dd>
+          <dt>R1</dt><dd>Fire missiles (lock on first)</dd>
           <dt>L1</dt><dd>Flares, to shake off missiles</dd>
-          <dt>A</dt><dd>Hold to boost</dd>
+          <dt>L3 / A</dt><dd>Boost: click the left stick to switch it on (braking ends it), or hold A</dd>
           <dt>B</dt><dd>Hold for handbrake: drift through corners</dd>
           <dt>R3</dt><dd>Hold to look behind</dd>
           <dt>Select / View</dt><dd>Camera: close, far, front bumper, cockpit</dd>
@@ -404,25 +411,26 @@ body.input-pad .mode:focus,body.input-pad .btn:focus,body.input-pad input:focus{
         <dl class="cmap">
           <dt>W / S</dt><dd>Throttle and brake</dd>
           <dt>A / D</dt><dd>Steer</dd>
-          <dt>Space / C</dt><dd>Climb / dive</dd>
+          <dt>Space / C</dt><dd>Climb / dive (E and Q too)</dd>
           <dt>Shift</dt><dd>Boost</dd>
-          <dt>F</dt><dd>Fire (hold for the machine gun)</dd>
-          <dt>Tab / 1 / 2</dt><dd>Switch weapon (mouse wheel too)</dd>
-          <dt>G</dt><dd>Flares (middle mouse button too)</dd>
+          <dt>F / left click</dt><dd>Hold to fire the machine gun</dd>
+          <dt>R / right click</dt><dd>Fire missiles (lock on first)</dd>
+          <dt>G / middle click</dt><dd>Flares</dd>
           <dt>X</dt><dd>Hold for handbrake and drift</dd>
           <dt>B</dt><dd>Hold to look behind</dd>
           <dt>V</dt><dd>Camera: close, far, front bumper, cockpit</dd>
-          <dt>Mouse</dt><dd>Click to capture, move to steer and climb, left click fires, right click boosts</dd>
+          <dt>Mouse</dt><dd>Click to capture, then move to steer and climb</dd>
           <dt>Esc</dt><dd>Menu and release the mouse</dd>
         </dl>
         <div class="chead">Touch</div>
         <dl class="cmap">
           <dt>Left stick</dt><dd>Steer, climb and dive</dd>
           <dt>Right lever</dt><dd>Throttle, push into the top band to boost</dd>
-          <dt>MSL / GUN</dt><dd>Fire the selected weapon</dd>
-          <dt>WPN</dt><dd>Switch weapon</dd>
-          <dt>FLR</dt><dd>Flares</dd>
-          <dt>DRIFT</dt><dd>Hold for handbrake and drift</dd>
+          <dt>Bullets</dt><dd>Hold to fire the machine gun</dd>
+          <dt>Rocket</dt><dd>Fire missiles</dd>
+          <dt>Star</dt><dd>Flares</dd>
+          <dt>Camera (top right)</dt><dd>Change camera: close, far, front bumper, cockpit</dd>
+          <dt>Tyre tracks</dt><dd>Hold for handbrake and drift</dd>
         </dl>
         <button class="btn ghost" id="ctrlBack">Back to settings</button>
       </div>
@@ -1025,7 +1033,7 @@ function railNear(x, z) {
 }
 
 /* ---------- Vehicle (shared flight model) ---------- */
-const SPEC_PLAYER = { accel: 40, brake: 60, drag: 0.22, maxSpeed: 72, boostSpeed: 118, turn: 1.9, grip: 3.5, lift: 64, vdamp: 2.5, boostDrain: 0.3, boostRegen: 0.11, noCeil: false };
+const SPEC_PLAYER = { accel: 40, brake: 60, drag: 0.22, maxSpeed: 72, boostSpeed: 118, turn: 1.9, grip: 3.5, lift: 118, vdamp: 2.3, boostDrain: 0.3, boostRegen: 0.11, noCeil: false };
 class Vehicle {
   constructor(spec) {
     this.spec = Object.assign({}, spec);
@@ -1070,7 +1078,7 @@ class Vehicle {
     this.speed = Math.hypot(this.vel.x, this.vel.z);
     const rollT = clamp(-this.yawRate * Math.max(10, Math.abs(f)) * 0.011 * (this.gripK < 0.9 ? 1.25 : 1), -0.85, 0.85);
     this.roll += (rollT - this.roll) * Math.min(1, dt * 5);
-    const pitchT = clamp(-Math.atan2(this.vel.y, clamp(this.speed, 15, 45)) * 0.85 - thr * 0.04, -0.7, 0.7);
+    const pitchT = clamp(-Math.atan2(this.vel.y, clamp(this.speed, 15, 45)) * 0.85 - thr * 0.04, -1.0, 1.0);
     this.pitch += (pitchT - this.pitch) * Math.min(1, dt * 5);
     return impact;
   }
@@ -1730,20 +1738,40 @@ class Airships {
 
 /* ---------- Health pickups ---------- */
 class Pickups {
+  // three kinds float over the street crossings: green repairs, red missiles, blue flares
   constructor(n) {
     this.pool = []; this.items = []; this.taken = new Map(); this.scanT = 0;
-    const crossMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.35, 1.7, 0.7) });
-    const ringMat = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.3, 1.4, 0.6), transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false });
-    const g1 = new THREE.BoxGeometry(1.1, 3.6, 1.1), g2 = new THREE.BoxGeometry(3.6, 1.1, 1.1), tg = new THREE.TorusGeometry(3.4, 0.18, 6, 32);
+    const glow = c => new THREE.MeshBasicMaterial({ color: new THREE.Color(...c) });
+    const ringM = c => new THREE.MeshBasicMaterial({ color: new THREE.Color(...c), transparent: true, opacity: 0.6, blending: THREE.AdditiveBlending, depthWrite: false });
+    const tg = new THREE.TorusGeometry(3.4, 0.22, 6, 32), beamGeo = new THREE.CylinderGeometry(0.4, 0.4, 90, 8, 1, true);
+    const kinds = {
+      hp: { mat: glow([0.35, 1.7, 0.7]), ring: ringM([0.3, 1.4, 0.6]), parts: [new THREE.BoxGeometry(1.1, 3.6, 1.1), new THREE.BoxGeometry(3.6, 1.1, 1.1)] },
+      msl: { mat: glow([3.2, 0.3, 0.35]), ring: ringM([2.6, 0.25, 0.3]), extra: [[new THREE.CylinderGeometry(0.47, 0.47, 0.5, 10).translate(0, 0.9, 0), glow([3, 2.6, 2.4])], [new THREE.CylinderGeometry(0.47, 0.47, 0.5, 10).translate(0, -0.4, 0), glow([3, 2.6, 2.4])], [new THREE.SphereGeometry(3.4, 14, 10), new THREE.MeshBasicMaterial({ color: new THREE.Color(0.7, 0.04, 0.06), transparent: true, opacity: 0.35, blending: THREE.AdditiveBlending, depthWrite: false })]], parts: [new THREE.CylinderGeometry(0.42, 0.42, 3.4, 10), new THREE.ConeGeometry(0.42, 1.0, 10).translate(0, 2.2, 0), new THREE.BoxGeometry(1.6, 0.6, 0.12).translate(0, -1.3, 0), new THREE.BoxGeometry(0.12, 0.6, 1.6).translate(0, -1.3, 0)] },
+      flr: { mat: glow([0.6, 1.6, 2.6]), ring: ringM([0.4, 1.2, 2.0]), parts: [new THREE.OctahedronGeometry(1.6), new THREE.OctahedronGeometry(0.9).translate(1.9, 0.6, 0), new THREE.OctahedronGeometry(0.7).translate(-1.7, -0.8, 0.4)] }
+    };
     for (let i = 0; i < n; i++) {
-      const g = new THREE.Group(); g.add(new THREE.Mesh(g1, crossMat)); g.add(new THREE.Mesh(g2, crossMat));
-      const ring = new THREE.Mesh(tg, ringMat); g.add(ring); g.visible = false; scene.add(g); this.pool.push({ g, ring, item: null });
+      const g = new THREE.Group(), sub = {};
+      for (const [k, d] of Object.entries(kinds)) {
+        const sg = new THREE.Group(); d.parts.forEach(pg => sg.add(new THREE.Mesh(pg, d.mat))); (d.extra || []).forEach(([pg, m]) => sg.add(new THREE.Mesh(pg, m)));
+        sg.add(Object.assign(new THREE.Mesh(tg, d.ring), { name: 'ring' }));
+        sg.add(new THREE.Mesh(beamGeo, d.ring.clone()).translateY(0)); sg.children[sg.children.length - 1].material.opacity = 0.16;   // light pillar, visible from afar
+        g.add(sg); sub[k] = sg;
+      }
+      g.scale.setScalar(1.6); g.visible = false; scene.add(g); this.pool.push({ g, sub, item: null });
     }
   }
   at(i, j) {
     const h = hash3(SEED + 31, i, j);
-    if (h % 1000 >= 22 || isRailX(i) || isRailZ(j)) return null;
-    return { key: i + ',' + j, x: streetCenter(i), y: 36 + (h >>> 10) % 90, z: streetCenter(j) };
+    if (h % 1000 >= 45 || isRailX(i) || isRailZ(j)) return null;
+    const r = (h >>> 18) % 100, kind = r < 34 ? 'hp' : r < 72 ? 'msl' : 'flr';
+    return { key: i + ',' + j, kind, x: streetCenter(i), y: 36 + (h >>> 10) % 90, z: streetCenter(j) };
+  }
+  wants(kind) { return kind === 'hp' ? player.hull < 100 : kind === 'msl' ? game.msl < MSL_MAX : game.flares < FLR_MAX; }
+  give(kind) {
+    if (kind === 'hp') { player.hull = Math.min(100, player.hull + 40); toast('HULL REPAIRED +40', 'cyan'); }
+    else if (kind === 'msl') { const n = Math.min(4, MSL_MAX - game.msl); game.msl += n; toast('MISSILES +' + n, 'red'); }
+    else { const n = Math.min(3, FLR_MAX - game.flares); game.flares += n; toast('FLARES +' + n, 'cyan'); }
+    Snd.chime(); rumble(0, 0.4, 160);
   }
   update(dt, now, active) {
     if (!active) { this.pool.forEach(p => { p.g.visible = false; p.item = null; }); this.items.length = 0; return; }
@@ -1754,14 +1782,14 @@ class Pickups {
         const it = this.at(i, j); if (it && !(this.taken.get(it.key) > now)) { it.d = Math.hypot(it.x - px, it.z - pz); list.push(it); }
       }
       list.sort((a, b) => a.d - b.d); this.items = list.slice(0, this.pool.length);
-      this.pool.forEach((p, k) => { p.item = this.items[k] || null; p.g.visible = !!p.item; });
+      this.pool.forEach((p, k) => { p.item = this.items[k] || null; p.g.visible = !!p.item; if (p.item) for (const [kk, sg] of Object.entries(p.sub)) sg.visible = kk === p.item.kind; });
     }
     for (const p of this.pool) {
       const it = p.item; if (!it) continue;
-      p.g.position.set(it.x, it.y + Math.sin(now / 500 + it.x) * 0.8, it.z); p.g.rotation.y = now / 700; p.ring.rotation.x = Math.PI / 2 + Math.sin(now / 900) * 0.3;
-      if (player.hull < 100 && player.pos.distanceTo(p.g.position) < 7.5) {
-        player.hull = Math.min(100, player.hull + 40); this.taken.set(it.key, now + 60000);
-        toast('HULL REPAIRED +40', 'cyan'); Snd.chime(); rumble(0, 0.4, 160);
+      const sg = p.sub[it.kind], ring = sg.getObjectByName('ring');
+      p.g.position.set(it.x, it.y + Math.sin(now / 500 + it.x) * 0.8, it.z); p.g.rotation.y = now / 700; ring.rotation.x = Math.PI / 2 + Math.sin(now / 900) * 0.3;
+      if (this.wants(it.kind) && player.pos.distanceTo(p.g.position) < 11) {
+        this.give(it.kind); this.taken.set(it.key, now + 60000);
         p.item = null; p.g.visible = false; this.items = this.items.filter(x => x !== it);
       }
     }
@@ -2060,12 +2088,12 @@ function panOf(p) { _pr.setFromMatrixColumn(camera.matrixWorld, 0); _pd.copy(p).
 
 /* ---------- Input ---------- */
 const keys = new Set();
-const touchState = { steer: 0, lift: 0, lever: 0, fire: false, drift: false, flare: false, wpn: false };
+const touchState = { steer: 0, lift: 0, lever: 0, fire: false, drift: false, flare: false, msl: false };
 const input = { throttle: 0, steer: 0, lift: 0, boost: false, fire: false, look: false, handbrake: false, flare: false, swap: false };
 const NO_INPUT = { throttle: 0, steer: 0, lift: 0, boost: false, fire: false, handbrake: false };
-const edge = { flare: false, swap: false, pick: null };   // one-shot presses collected between frames
+const edge = { flare: false, missile: false, cam: false };   // one-shot presses collected between frames
 let mouseFire = false, prevFire = false;
-const pad = { prev: [], index: -1, lastRumble: '', lastNav: 0, rumbleUntil: 0, rumbleLevel: 0, boostT: 0 };
+const pad = { prev: [], boostLatch: false, index: -1, lastRumble: '', lastNav: 0, rumbleUntil: 0, rumbleLevel: 0, boostT: 0 };
 let inputMode = matchMedia('(pointer:coarse)').matches ? 'touch' : 'kbd';
 function setInputMode(m) {
   if (m === inputMode) return;
@@ -2133,10 +2161,9 @@ function captureMouse(fromClick) {
 function releaseMouse() { if (document.pointerLockElement) { mouse.wantExit = true; try { document.exitPointerLock(); } catch (_) {} } mouse.boost = false; mouseFire = false; }
 canvas.addEventListener('mousedown', e => {
   if (game.state === 'play' && !game.menuOpen && settings.mouseFly && !mouse.locked && !mouse.failed) { if (captureMouse(true)) return; }
-  if (e.button === 0) mouseFire = true; else if (e.button === 2) mouse.boost = true; else if (e.button === 1) { e.preventDefault(); edge.flare = true; }
+  if (e.button === 0) mouseFire = true; else if (e.button === 2) edge.missile = true; else if (e.button === 1) { e.preventDefault(); edge.flare = true; }
 });
-canvas.addEventListener('wheel', e => { if (game.state === 'play' && !game.menuOpen && Math.abs(e.deltaY) > 2) edge.swap = true; }, { passive: true });
-addEventListener('mouseup', e => { if (e.button === 0) mouseFire = false; else if (e.button === 2) mouse.boost = false; });
+addEventListener('mouseup', e => { if (e.button === 0) mouseFire = false; });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('mousemove', e => {
   if (!settings.mouseFly || !mouseFlying()) return;
@@ -2169,8 +2196,7 @@ addEventListener('keydown', e => {
   if (game.state === 'play' && !game.menuOpen) {
     if (e.code === 'KeyG') edge.flare = true;
     if (e.code === 'KeyV') edge.cam = true;
-    if (e.code === 'Tab') edge.swap = true;
-    if (e.code === 'Digit1') edge.pick = 'msl'; if (e.code === 'Digit2') edge.pick = 'gun';
+    if (e.code === 'KeyR') edge.missile = true;
   }
   if (e.code === 'KeyM') toggleSound();
   if (e.code === 'KeyH' && game.state === 'play') { game.hudHidden = !game.hudHidden; $('#hud').hidden = game.hudHidden; }
@@ -2186,7 +2212,7 @@ function pollInput() {
   const k = c => keys.has(c);
   let thr = (k('KeyW') || k('ArrowUp') ? 1 : 0) - (k('KeyS') || k('ArrowDown') ? 1 : 0);
   let steer = (k('KeyD') || k('ArrowRight') ? 1 : 0) - (k('KeyA') || k('ArrowLeft') ? 1 : 0);
-  let lift = (k('Space') || k('KeyR') || k('KeyE') ? 1 : 0) - (k('KeyC') || k('ControlLeft') || k('KeyQ') ? 1 : 0);
+  let lift = (k('Space') || k('KeyE') ? 1 : 0) - (k('KeyC') || k('ControlLeft') || k('KeyQ') ? 1 : 0);
   let boost = k('ShiftLeft') || k('ShiftRight');
   let fire = k('KeyF') || k('Enter') || k('NumpadEnter') || mouseFire || touchState.fire;
   // touch: left stick = steer + altitude, right lever = throttle (top of the lever = boost)
@@ -2222,12 +2248,15 @@ function pollInput() {
       if (ly) lift = clamp(-ly * inv, -1, 1);
       if (ry) thr = clamp(-ry, -1, 1);
       const rt = val(7), lt = val(6); if (rt > 0.05 || lt > 0.05) thr = rt - lt;
-      if (btn(0)) boost = true;
-      if (btn(5)) fire = true;
+      // X machine gun, R1 missiles, L1 flares, L3 click toggles boost (A holds it), B handbrake, R3 look behind
+      if (pressed(10)) pad.boostLatch = !pad.boostLatch;
+      if (pad.boostLatch && (thr < -0.1 || player.boostE < 0.03)) pad.boostLatch = false;   // braking or an empty tank ends it
+      if (btn(0) || pad.boostLatch) boost = true;
+      if (btn(2)) fire = true;
+      if (pressed(5)) edge.missile = true;
       if (btn(1)) handbrake = true;
       if (btn(11)) look = true;
       if (pressed(4)) edge.flare = true;
-      if (pressed(3)) edge.swap = true;
       if (pressed(8)) edge.cam = true;
     } else padMenu(pressed, lx, ly);
     if (pressed(9)) { if (game.state === 'play' && !game.menuOpen) pause(); else if (game.state === 'paused' || game.menuOpen) resume(); }
@@ -2235,8 +2264,8 @@ function pollInput() {
     break;
   }
   input.look = look; input.handbrake = handbrake;
-  input.flare = edge.flare || touchState.flare; input.swap = edge.swap || touchState.wpn; input.pick = edge.pick;
-  input.cam = edge.cam; edge.flare = edge.swap = edge.cam = false; edge.pick = null; touchState.flare = touchState.wpn = false;
+  input.flare = edge.flare || touchState.flare; input.missile = edge.missile || touchState.msl;
+  input.cam = edge.cam; edge.flare = edge.missile = edge.cam = false; touchState.flare = touchState.msl = false;
   input.throttle = thr; input.steer = steer; input.lift = lift; input.boost = boost; input.fire = fire;
 }
 
@@ -2274,7 +2303,7 @@ function pollInput() {
   fb.addEventListener('contextmenu', e => e.preventDefault());
   const tap = (id, fn) => { const el = $(id); el.addEventListener('pointerdown', e => { e.preventDefault(); fn(); }); el.addEventListener('contextmenu', e => e.preventDefault()); };
   tap('#tbFlr', () => { touchState.flare = true; });
-  tap('#tbWpn', () => { touchState.wpn = true; });
+  tap('#tbMsl', () => { touchState.msl = true; });
   const db = $('#tbDrift');
   db.addEventListener('pointerdown', e => { e.preventDefault(); try { db.setPointerCapture(e.pointerId); } catch (_) {} touchState.drift = true; db.classList.add('on'); });
   const doff = () => { touchState.drift = false; db.classList.remove('on'); };
@@ -2291,13 +2320,13 @@ const playerMesh = makeCar('player', '#ff9a3d'); playerMesh.group.visible = fals
 const MAX_COPS = isTouch ? 5 : 6;
 const cops = [];
 for (let i = 0; i < MAX_COPS; i++) {
-  const v = new Vehicle({ accel: 44, brake: 60, drag: 0.2, maxSpeed: 75, boostSpeed: 75, turn: 1.75, grip: 4, lift: 60, vdamp: 2.4, boostDrain: 0, boostRegen: 0, noCeil: true });
+  const v = new Vehicle({ accel: 44, brake: 60, drag: 0.2, maxSpeed: 75, boostSpeed: 75, turn: 1.75, grip: 4, lift: 100, vdamp: 2.3, boostDrain: 0, boostRegen: 0, noCeil: true });
   v.kind = 'cop'; v.active = false; v.mesh = makeCar('cop'); v.mesh.group.visible = false; cops.push(v);
 }
 const remotes = new Map();   // multiplayer pilots on other devices
 
 const game = { state: 'menu', mode: null, elapsed: 0, jobTime: 0, jobs: 0, credits: 0, wrecks: 0, heat: 1, bust: 0, near: 0, drop: new V3(), dropName: '', dropStart: 0, grace: 0, spawnCd: 0, shake: 0, hudHidden: false, hudT: 0, mapT: 0,
-  pods: [1, 1, 1, 1], queue: [], fireCd: 0, weapon: 'msl', gunCd: 0, gunHeat: 0, overheat: false, gunTarget: null, muzzle: 0, flares: 3, flareT: 0, flareCd: 0, hitT: 0, incomingSeen: 0, slowT: 0, ts: 1, heatBonus: 0, killPos: new V3(), aim: new V3(0, 0, 1), camPitch: 0, fovKick: 0, lockScanT: 0, beepT: 0, warnT: 0, menuOpen: false };
+  msl: 4, podSlot: 0, queue: [], fireCd: 0, gunCd: 0, gunHeat: 0, overheat: false, gunTarget: null, muzzle: 0, flares: 3, flareT: 0, flareCd: 0, hitT: 0, incomingSeen: 0, slowT: 0, ts: 1, heatBonus: 0, killPos: new V3(), aim: new V3(0, 0, 1), camPitch: 0, fovKick: 0, lockScanT: 0, beepT: 0, warnT: 0, menuOpen: false };
 game.deathT = 0; game.deathPos = new V3(); game.deathYaw = 0; game.deathThen = null;
 const mp = { alive: true, respawnT: 0, protect: 0, lastDmg: 9, outT: 0, deathPos: new V3(), killer: null, mid: 0 };
 
@@ -2450,7 +2479,8 @@ for (let i = 0; i < 24; i++) {
   glow.position.z = -1.25; glow.scale.set(1, 1, 2.4); mesh.add(glow); mesh.visible = false; scene.add(mesh);
   missiles.push({ mesh, glow, active: false, pos: new V3(), vel: new V3(), dir: new V3(0, 0, 1), t: 0, lit: false, speed: 0, target: null, own: true, ownerId: '', mid: '' });
 }
-const readyPods = () => game.pods.filter(p => p >= 1).length;
+const MSL_MAX = 8, FLR_MAX = 6;
+const readyPods = () => game.msl;
 function lockables() { return game.mode === 'getaway' ? cops : game.mode === 'mp' ? [...remotes.values()] : []; }
 function canLock(o) { return o.kind === 'remote' ? (o.alive && o.enemy && !(o.protect > 0)) : (o.active && !o.wrecked); }
 function targetAlive(o) { if (!o) return false; if (o.isFlare) return o.life > 0; if (o === player) return game.mode === 'mp' ? mp.alive : game.state === 'play'; return o.kind === 'remote' ? o.alive : (o.active && !o.wrecked); }
@@ -2460,7 +2490,7 @@ function triggerFire() {
   if (!canFire() || game.fireCd > 0) return;
   game.fireCd = 0.35;
   const ready = readyPods() - game.queue.length;
-  if (ready <= 0) { Snd.blip(180, 0.12); return; }
+  if (ready <= 0) { Snd.blip(180, 0.12); toast('NO MISSILES · FIND A RED PICKUP', 'red'); return; }
   const live = lockables().filter(canLock);
   let targets = live.filter(c => c.lock >= 1).sort((a, b) => a.lockAng - b.lockAng).slice(0, ready);
   if (!targets.length) { const part = live.filter(c => c.lock > 0.35).sort((a, b) => b.lock - a.lock)[0]; targets = [part || null]; }
@@ -2468,9 +2498,9 @@ function triggerFire() {
   if (targets.length > 1) toast('SALVO · ' + targets.length + ' MISSILES AWAY', 'red');
 }
 function launchMissile(target) {
-  const slot = game.pods.findIndex(p => p >= 1); if (slot < 0) return;
+  if (game.msl <= 0) return;
   const m = missiles.find(mm => !mm.active); if (!m) return;
-  game.pods[slot] = 0;
+  game.msl--; const slot = game.podSlot = (game.podSlot + 1) % 4;
   playerMesh.group.updateMatrixWorld(); playerMesh.pods[slot].getWorldPosition(m.pos);
   const sgn = Math.sign(playerMesh.pods[slot].position.x);
   m.active = true; m.t = 0; m.lit = false; m.speed = 0; m.target = target; m.own = true; m.enemy = false; m.lostT = 0; m.ownerId = NET.myId || 'me';
@@ -2596,7 +2626,7 @@ function spawnFlares(owner, p, v, yaw) {
   return out;
 }
 function dropFlares() {
-  if (!canFire() || game.flares < 1 || game.flareCd > 0) { if (canFire() && game.flares < 1) Snd.blip(180, 0.12); return; }
+  if (!canFire() || game.flares < 1 || game.flareCd > 0) { if (canFire() && game.flares < 1) { Snd.blip(180, 0.12); toast('NO FLARES · FIND A BLUE PICKUP', 'red'); } return; }
   game.flares -= 1; game.flareCd = 0.6;
   spawnFlares(player, player.pos, player.vel, player.yaw);
   Snd.flare(); rumble(0.1, 0.35, 160);
@@ -2628,12 +2658,6 @@ const tracers = new THREE.InstancedMesh(tracerGeo, tracerMat, 120); tracers.coun
 const TR_OWN = new THREE.Color(3, 1.7, 0.6), TR_ENEMY = new THREE.Color(3, 0.35, 0.4);
 const bullets = Array.from({ length: 120 }, () => ({ active: false, pos: new V3(), prev: new V3(), vel: new V3(), life: 0, own: true, ownerId: '' }));
 const _bo = new THREE.Object3D(), _ba = new V3(), _bb = new V3();
-function selectWeapon(w) {
-  if (game.weapon === w || game.mode === 'cruise') return;
-  game.weapon = w; game.queue = [];
-  toast(w === 'gun' ? 'MACHINE GUN' : 'MISSILES', 'cyan'); Snd.blip(w === 'gun' ? 700 : 1100, 0.07);
-  const tb = $('#tbFire'); tb.textContent = w === 'gun' ? 'GUN' : 'MSL';
-}
 function gunAim(muzzle) {
   // soft lock: an enemy inside a narrow cone ahead pulls the stream onto its predicted position
   let best = null, ba = GUN_CONE;
@@ -2674,12 +2698,11 @@ const tmpMz = new V3();
 const r3 = v => Math.round(v * 1000) / 1000;
 function gunTick(dt) {
   game.gunCd -= dt; game.flareCd -= dt; game.hitT -= dt;
-  if (game.flares < 3) { game.flareT += dt; if (game.flareT >= 8) { game.flareT = 0; game.flares++; } }
-  const firing = input.fire && game.weapon === 'gun' && canFire() && !game.overheat;
+  const firing = input.fire && canFire() && !game.overheat;
   if (firing) { while (game.gunCd <= 0 && !game.overheat) fireGun(); }
   else game.gunHeat = Math.max(0, game.gunHeat - dt * (game.overheat ? 0.42 : 0.6));
   if (game.overheat && game.gunHeat < 0.2) { game.overheat = false; Snd.blip(1300, 0.06); }
-  if (game.weapon !== 'gun' || !canFire()) game.gunTarget = null;
+  if (!canFire()) game.gunTarget = null;
   for (const mz of playerMesh.muzzles) if (mz.visible && (mz.userData.t -= dt) <= 0) mz.visible = false;
   updateBullets(dt);
   updateFlares(dt);
@@ -2750,7 +2773,7 @@ function updateLocks(dt) {
     if (c.inCone) cands.push(c);
   }
   cands.sort((a, b) => a.lockAng - b.lockAng);
-  const allowed = game.weapon === 'gun' ? [] : cands.slice(0, Math.max(0, readyPods() - game.queue.length));
+  const allowed = cands.slice(0, Math.max(0, readyPods() - game.queue.length));
   for (const c of all) {
     if (!canLock(c)) continue;
     const was = c.lock || 0;
@@ -2850,8 +2873,8 @@ function newJob(first) {
 }
 function resetCombat() {
   debris.forEach(d => { d.mesh.visible = false; }); clearFlares(); clearBullets();
-  Object.assign(game, { weapon: 'msl', gunCd: 0, gunHeat: 0, overheat: false, gunTarget: null, flares: 3, flareT: 0, flareCd: 0, hitT: 0 }); $('#tbFire').textContent = 'MSL';
-  Object.assign(game, { pods: [1, 1, 1, 1], queue: [], fireCd: 0, slowT: 0, ts: 1, camPitch: 0, fovKick: 0, menuOpen: false });
+  Object.assign(game, { gunCd: 0, gunHeat: 0, overheat: false, gunTarget: null, msl: 4, podSlot: 0, flares: 2, flareT: 0, flareCd: 0, hitT: 0 });
+  Object.assign(game, { queue: [], fireCd: 0, slowT: 0, ts: 1, camPitch: 0, fovKick: 0, menuOpen: false });
   missiles.forEach(killMissile); smoke.clear(); fire.clear();
   cops.forEach(c => { c.lock = 0; c.inbound = 0; });
 }
@@ -2873,8 +2896,8 @@ function startRun(mode) {
   if (mode === 'getaway') newJob(true); else toast('NIGHT DRIVE · NO PATROLS TONIGHT', 'cyan');
   if (inputMode === 'kbd') captureMouse(false);
   showOnly(null); enterPlayHUD();
-  if (mode === 'cruise') showHint(isTouch ? 'Left stick: steer and climb · right lever: throttle · hold DRIFT to slide' : inputMode === 'pad' ? 'Left stick fly · triggers throttle · A boost · B drift · R3 look behind' : 'W/S throttle · A/D steer · Space/C altitude · Shift boost · X drift · H hides the HUD');
-  else showHint(inputMode === 'pad' ? 'R1 fire · Y switch weapon · L1 flares · B drift · A boost' : inputMode === 'touch' ? 'MSL/GUN fires · WPN switches weapon · FLR drops flares · DRIFT slides' : 'F or click fire · Tab switch weapon · G flares · X drift · Shift boost');
+  if (mode === 'cruise') showHint(isTouch ? 'Left stick: steer and climb · right lever: throttle · hold the tyre tracks to drift · camera button top right' : inputMode === 'pad' ? 'Left stick fly · triggers throttle · A boost · B drift · R3 look behind' : 'W/S throttle · A/D steer · Space/C altitude · Shift boost · X drift · H hides the HUD');
+  else showHint(inputMode === 'pad' ? 'X gun · R1 missiles · L1 flares · L3 or A boost · B drift' : inputMode === 'touch' ? 'Bullets gun · rocket missiles · star flares · tyre tracks drift · camera button top right' : 'F or left click gun · R or right click missiles · G flares · X drift · Shift boost');
   tryFullscreenOnTouch();
 }
 function pause() {
@@ -2932,8 +2955,9 @@ function completeDrop() {
   const pay = Math.max(600, Math.round(1200 + game.dropStart * 0.9 + game.heat * 250 - game.jobTime * 6));
   game.credits += pay;
   Snd.chime();
-  toast('DROP COMPLETE · +¢' + pay.toLocaleString());
+  toast('DROP COMPLETE · +¢' + pay.toLocaleString() + ' · REARMED');
   player.hull = Math.min(100, player.hull + 40); player.boostE = 1; game.bust = 0;
+  game.msl = MSL_MAX; game.flares = FLR_MAX; game.gunHeat = 0; game.overheat = false;
   newJob(false);
 }
 function spawnCop(c) {
@@ -2947,7 +2971,7 @@ function spawnCop(c) {
   c.yawRate = 0; c.roll = 0; c.pitch = 0;
   c.baseSpeed = 74 + game.heat * 6; c.spec.maxSpeed = c.baseSpeed;
   c.side = Math.random() < 0.5 ? -1 : 1; c.yOff = (Math.random() - 0.5) * 14;
-  c.mslCd = 3 + Math.random() * 5; c.aimT = 0; c.hp = 100;
+  c.mslCd = 9 + Math.random() * 8; c.aimT = 0; c.hp = 100;
   c.active = true; c.wrecked = false; c.wreckT = 0; c.lock = 0; c.inbound = 0; c.mesh.group.visible = true;
 }
 const copInp = { throttle: 0, steer: 0, lift: 0, boost: false };
@@ -3023,11 +3047,11 @@ function copWeapons(c, dt, dist) {
   c.mslCd -= dt;
   const tx = player.pos.x - c.pos.x, tz = player.pos.z - c.pos.z;
   const facing = (Math.sin(c.yaw) * tx + Math.cos(c.yaw) * tz) / Math.max(1, Math.hypot(tx, tz));
-  if (c.mslCd <= 0 && game.grace <= 0 && dist > 45 && dist < 400 && facing > 0.8 && enemyMissiles() < 3) {
+  if (c.mslCd <= 0 && game.grace <= 0 && dist > 45 && dist < 400 && facing > 0.8 && enemyMissiles() < (game.heat >= 4 ? 2 : 1)) {
     c.aimT += dt;
     if (c.aimT >= 1.5) {
       c.aimT = 0;
-      if (world.lineClear(c.pos, player.pos)) { fireCopMissile(c); c.mslCd = Math.max(4, 10 - game.heat * 1.2 + Math.random() * 5); }
+      if (world.lineClear(c.pos, player.pos)) { fireCopMissile(c); c.mslCd = Math.max(10, 20 - game.heat * 1.5 + Math.random() * 8); }
       else c.mslCd = 1;
     }
   } else c.aimT = Math.max(0, c.aimT - dt * 1.5);
@@ -3056,7 +3080,6 @@ function wreckCop(c, byMissile) {
 }
 function combatTick(dt) {
   game.fireCd -= dt;
-  for (let i = 0; i < 4; i++) if (game.pods[i] < 1) game.pods[i] = Math.min(1, game.pods[i] + dt / 4.5);
   for (let i = game.queue.length - 1; i >= 0; i--) { const q = game.queue[i]; q.t -= dt; if (q.t <= 0) { game.queue.splice(i, 1); launchMissile(q.target); } }
   updateMissiles(dt);
   gunTick(dt);
@@ -3151,8 +3174,10 @@ function simStep(dt) {
     copWeapons(c, dt, d);
     if (Math.hypot(dx, dz) > 900) { c.active = false; c.mesh.group.visible = false; }
   }
-  if (near > 0) game.bust = Math.min(1, game.bust + dt * 0.5 * Math.min(2, near));
-  else game.bust = Math.max(0, game.bust - dt * 0.22);
+  // one cruiser on you takes about 6 s to bust you, two or more about 3 s
+  if (near > 0) game.bust = Math.min(1, game.bust + dt * 0.17 * Math.min(2, near));
+  else game.bust = Math.max(0, game.bust - dt * 0.3);
+  if (near > 0) { game.bustBeep = (game.bustBeep || 0) - dt; if (game.bustBeep <= 0) { Snd.blip(500 + game.bust * 700, 0.09); game.bustBeep = lerp(0.6, 0.14, game.bust); if (game.bust > 0.6) rumble(0.2, 0.3, 80); } }
   game.near = near;
   if (game.bust >= 1) { gameOver('BUSTED'); return; }
   if (Math.hypot(player.pos.x - game.drop.x, player.pos.z - game.drop.z) < 14) completeDrop();
@@ -3611,7 +3636,7 @@ function mpRespawn() {
   const sp = bestSpawn();
   placePlayer(sp.x, sp.y, sp.z, sp.yaw);
   Object.assign(mp, { alive: true, protect: 3, lastDmg: 9, outT: 0 });
-  game.pods = [1, 1, 1, 1]; game.flares = 3; game.gunHeat = 0; game.overheat = false; playerMesh.group.visible = true; $('#respawn').hidden = true;
+  game.msl = Math.max(game.msl, 4); game.flares = Math.max(game.flares, 2); game.gunHeat = 0; game.overheat = false; playerMesh.group.visible = true; $('#respawn').hidden = true;
 }
 function mpStep(dt) {
   if (NET.phase !== 'playing') return;
@@ -3718,7 +3743,7 @@ function syncMesh(v, m) {
 function updateVisuals(dt, t) {
   if (playerMesh.group.visible) {
     syncMesh(player, playerMesh);
-    playerMesh.pods.forEach((m, i) => { m.visible = game.mode !== 'cruise' && game.pods[i] >= 1; });
+    playerMesh.pods.forEach((m, i) => { m.visible = game.mode !== 'cruise' && i < game.msl - game.queue.length; });
     if (game.mode === 'mp' && mp.protect > 0) playerMesh.group.visible = true, playerMesh.group.children[0].visible = Math.floor(t * 10) % 2 === 0;
     else playerMesh.group.children[0].visible = true;
   }
@@ -3779,7 +3804,7 @@ function updateCamera(dt) {
   const p = player.pos;
   // pitch the view with the climb: rising looks up, diving looks down
   const lift = game.menuOpen ? 0 : input.lift;
-  const pitchT = clamp(Math.atan2(player.vel.y, clamp(player.speed, 15, 45)) + lift * 0.14, -0.7, 0.7);
+  const pitchT = clamp(Math.atan2(player.vel.y, clamp(player.speed, 15, 45)) + lift * 0.14, -1.05, 1.05);
   game.camPitch = lerp(game.camPitch, pitchT, 1 - Math.exp(-dt * 5));
   const cp = Math.cos(game.camPitch), sp = Math.sin(game.camPitch);
   const ldx = Math.sin(player.yaw) * cp, ldy = sp, ldz = Math.cos(player.yaw) * cp;
@@ -3825,7 +3850,7 @@ function updateCamera(dt) {
 }
 
 /* ---------- HUD ---------- */
-const hudEls = { spd: $('#spd'), alt: $('#alt'), boost: $('#boostF'), hull: $('#hullF'), hullM: $('#hullM'), arrow: $('#arrow'), dist: $('#dist'), dname: $('#dname'), warn: $('#warn'), bust: $('#bustF'), bustWrap: $('#bustWrap'), score: $('#score') };
+const hudEls = { spd: $('#spd'), alt: $('#alt'), boost: $('#boostF'), hull: $('#hullF'), hullM: $('#hullM'), arrow: $('#arrow'), dist: $('#dist'), warn: $('#warn'), bust: $('#bustF'), bustWrap: $('#bustWrap'), score: $('#score') };
 const mm = $('#minimap'), mctx = mm.getContext('2d');
 const pipEls = [...document.querySelectorAll('#ammo i')], flrEls = [...document.querySelectorAll('#flrPips i')];
 const incEls = { box: $('#incoming'), txt: $('#incTxt'), bar: $('#incBar'), threat: $('#threat') };
@@ -3846,9 +3871,9 @@ function updateLockUI() {
     const L = c.lock || 0, d = Math.round(c.lockDist || player.pos.distanceTo(c.pos));
     let cls = 'lk', s = 1, r = 0, label = c.kind === 'remote' ? c.name : '';
     if (c.kind === 'remote' && !c.enemy) cls += ' ally';
-    else if (game.weapon === 'gun') { if (c === game.gunTarget) { cls += ' gun'; s = 0.75; label = 'GUN ' + d + ' m'; } else { cls += ' track'; s = 0.6; r = 45; } }
     else if (L >= 1) { cls += ' locked'; label = 'LOCK ' + d + ' m'; }
     else if (L > 0) { s = 2.3 - 1.3 * L; r = (1 - L) * 90; label = Math.round(L * 100) + '%'; }
+    else if (c === game.gunTarget) { cls += ' gun'; s = 0.75; label = 'GUN ' + d + ' m'; }
     else { cls += ' track'; s = 0.6; r = 45; }
     if (c.inbound > 0) label = 'MSL INBOUND';
     if (el.className !== cls) el.className = cls;
@@ -3868,8 +3893,8 @@ function updateMissileMark() {
   if (!best) { markEl.hidden = true; ringEl.hidden = true; incEls.box.hidden = true; incEls.threat.style.opacity = 0; game.incomingSeen = 0; return; }
   const close = clamp(1 - bd / 420, 0, 1), eta = bd / Math.max(30, best.speed - player.speed * 0.3);
   incEls.box.hidden = false; incEls.box.classList.toggle('flash', bd < 120);
-  const txt = (n > 1 ? n + ' MISSILES · ' : '') + Math.round(bd) + ' m · ' + eta.toFixed(1) + ' s · ' + (game.flares >= 1 ? flareKey() + ' FLARES' : 'NO FLARES · BREAK HARD');
-  if (incEls.txt.textContent !== txt) incEls.txt.textContent = txt;
+  const txt = (n > 1 ? n + ' MISSILES' : 'MISSILE') + ' · ' + Math.round(bd) + ' m';
+  const hb = incEls.box.firstChild; if (hb.textContent !== txt) hb.textContent = txt;
   incEls.bar.style.width = (close * 100).toFixed(0) + '%';
   incEls.threat.style.opacity = (close * (0.25 + 0.2 * Math.sin(performance.now() / (60 + 140 * (1 - close))))).toFixed(3);
   // ring around your car with an arrow towards the missile: behind you points down the screen, ahead points up
@@ -3894,7 +3919,9 @@ function updateMissileMark() {
   const label = (behind ? 'BEHIND · ' : '') + Math.round(bd) + ' m';
   if (markEl.lastChild.textContent !== label) markEl.lastChild.textContent = label;
 }
+const away0 = g => g.mode !== 'getaway' || g.near === 0 || g.state !== 'play';
 function updateHUD(dt) {
+  $('#bustEdge').style.opacity = away0(game) ? 0 : clamp((game.bust - 0.25) * 1.1, 0, 0.75).toFixed(3);
   game.hudT += dt; if (game.hudT < 0.07) return; game.hudT = 0;
   hudEls.spd.textContent = Math.round(player.speed * 3.6);
   hudEls.alt.textContent = Math.round(player.pos.y) + ' m';
@@ -3902,23 +3929,32 @@ function updateHUD(dt) {
   hudEls.boost.style.width = (player.boostE * 100).toFixed(1) + '%';
   hudEls.hull.style.width = Math.max(0, player.hull).toFixed(1) + '%';
   hudEls.hullM.classList.toggle('low', player.hull < 35);
-  pipEls.forEach((el, i) => { const v = game.pods[i]; el.firstChild.style.height = (Math.min(1, v) * 100).toFixed(0) + '%'; el.classList.toggle('ready', v >= 1); });
-  flrEls.forEach((el, i) => { const v = i < game.flares ? 1 : i === game.flares ? game.flareT / 8 : 0; el.firstChild.style.height = (v * 100).toFixed(0) + '%'; el.classList.toggle('ready', v >= 1); });
-  $('#wMsl').classList.toggle('sel', game.weapon === 'msl'); $('#wGun').classList.toggle('sel', game.weapon === 'gun');
+  pipEls.forEach((el, i) => { const v = i < game.msl ? 1 : 0; el.firstChild.style.height = (v * 100) + '%'; el.classList.toggle('ready', v >= 1); });
+  flrEls.forEach((el, i) => { const v = i < game.flares ? 1 : 0; el.firstChild.style.height = (v * 100).toFixed(0) + '%'; el.classList.toggle('ready', v >= 1); });
   $('#gunF').style.width = (game.gunHeat * 100).toFixed(1) + '%'; $('#wGun').classList.toggle('hot', game.overheat);
-  $('#gunRet').hidden = !(game.weapon === 'gun' && game.mode !== 'cruise');
+  $('#gunRet').hidden = game.mode === 'cruise';
   let warn = '';
   if (game.mode === 'getaway') {
     const dx = game.drop.x - player.pos.x, dz = game.drop.z - player.pos.z;
     hudEls.arrow.style.transform = `rotate(${-wrapA(Math.atan2(dx, dz) - player.yaw)}rad)`;
     const dist = Math.hypot(dx, dz);
-    hudEls.dist.textContent = (dist > 999 ? (dist / 1000).toFixed(2) + ' km' : Math.round(dist) + ' m') + '  ·  ¢' + game.credits.toLocaleString();
-    hudEls.dname.textContent = game.dropName;
-    hudEls.bustWrap.hidden = game.bust <= 0.01;
-    hudEls.bust.style.width = (game.bust * 100).toFixed(1) + '%';
+    hudEls.dist.textContent = dist > 999 ? (dist / 1000).toFixed(1) + ' km' : Math.round(dist) + ' m';
+    // being busted: a big flashing siren panel with the progress, and blue-red light at the screen edges
+    const bw = hudEls.bustWrap, show = game.bust > 0.01 || game.near > 0;
+    bw.hidden = !show;
+    if (show) {
+      hudEls.bust.style.width = (game.bust * 100).toFixed(1) + '%';
+      const away = game.near === 0, hot = game.bust > 0.6 && !away;
+      bw.classList.toggle('hot', hot); bw.classList.toggle('away', away);
+      const t = away ? 'BREAKING AWAY' : hot ? 'ABOUT TO BE BUSTED' : 'CRUISER ON YOUR TAIL';
+      const sub = away ? 'Keep your distance' : (game.near > 1 ? game.near + ' cruisers boxing you in' : 'Shake it off: speed up, turn, climb') + ' · ' + Math.round(game.bust * 100) + '%';
+      if ($('#bustT').textContent !== t) $('#bustT').textContent = t;
+      if ($('#bustS').textContent !== sub) $('#bustS').textContent = sub;
+    }
+
     if (missiles.some(m => m.active && m.enemy && m.target === player)) warn = '';
     else if (cops.some(c => c.active && !c.wrecked && c.aimT > 0)) warn = 'Missile lock warning';
-    else if (game.near > 0) warn = 'Cruiser on your tail';
+    else if (game.near > 0) warn = '';
   } else if (game.mode === 'mp') {
     const now = performance.now(), s = scores(), me = NET.players[NET.myId] || { kills: 0, team: 0 };
     let html;
@@ -3967,7 +4003,7 @@ function drawMinimap() {
   } else if (game.mode === 'mp') {
     for (const r of remotes.values()) if (r.alive) dot(r.pos.x, r.pos.z, r.enemy ? '#ff3355' : r.color, 7, true);
   }
-  for (const it of pickups.items) dot(it.x, it.z, '#5dff9a', 5, false);
+  for (const it of pickups.items) dot(it.x, it.z, it.kind === 'msl' ? '#ff4d66' : it.kind === 'flr' ? '#5ab8ff' : '#5dff9a', 5, false);
   mctx.restore();
   mctx.fillStyle = game.mode === 'mp' ? colorOf(NET.players[NET.myId] || { idx: 0, team: 0 }) : '#ffa13d';
   mctx.beginPath(); mctx.moveTo(cx, cy - 10); mctx.lineTo(cx + 7, cy + 8); mctx.lineTo(cx, cy + 4); mctx.lineTo(cx - 7, cy + 8); mctx.closePath(); mctx.fill();
@@ -4072,10 +4108,10 @@ function frame(now) {
   const dt = game.state === 'play' || game.state === 'dying' ? rdt * game.ts : rdt;
   if (game.state === 'dying' && game.mode === 'getaway') { const st = Math.max(1, Math.ceil(dt / (1 / 60))); for (let i = 0; i < st && game.state === 'dying'; i++) simStep(dt / st); }
   if (game.state === 'play') {
-    if (input.pick) selectWeapon(input.pick); else if (input.swap) selectWeapon(game.weapon === 'msl' ? 'gun' : 'msl');
+
     if (input.flare) dropFlares();
     if (input.cam) cycleCamera();
-    if (input.fire && !prevFire && game.weapon === 'msl') triggerFire();
+    if (input.missile) triggerFire();
     const steps = Math.max(1, Math.ceil(dt / (1 / 60))), h = dt / steps;
     for (let i = 0; i < steps && game.state === 'play'; i++) { if (game.mode === 'mp') mpStep(h); else simStep(h); }
     if (game.state === 'play' && (game.mode === 'getaway' || game.mode === 'mp')) updateLocks(dt);
@@ -4228,6 +4264,7 @@ $('#mouseBtn').addEventListener('click', toggleMouse);
 $('#sensBtn').addEventListener('click', cycleSens);
 if (matchMedia('(pointer:coarse)').matches) document.querySelectorAll('.mouse-opt').forEach(el => { el.hidden = true; });
 $('#pauseBtn').addEventListener('click', () => { if (game.state === 'play') pause(); });
+$('#camBtn').addEventListener('click', () => { if (game.state === 'play' && !game.menuOpen) cycleCamera(); });
 $('#resume').addEventListener('click', resume);
 $('#restart').addEventListener('click', () => startRun(game.mode));
 $('#quit').addEventListener('click', () => { if (game.mode === 'mp') mpLeave(); else toMenu(); });
